@@ -1,0 +1,224 @@
+"""Rule loading, atom resolution, and the release gate.
+
+Two gates live in the loader. Atom resolution is ADR 0005. The verification gate
+is what stops an unverified clinical criterion reaching a patient by being
+forgotten: a release build refuses to start while any active rule still carries
+verify_before_ship.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from services.consult.clinical.actions import RedFlagAction
+from spine.rules.predicate_loader import load_predicates
+from spine.rules.rule_loader import (
+    RuleLoadError,
+    UnverifiedRulesError,
+    all_rules,
+    load_rule_set,
+    load_rule_sets,
+    require_verified,
+    resolve_atoms,
+    rules_dir,
+)
+from spine.schemas.predicate import Comparator, Predicate
+
+UNVERIFIED_SET = """
+name: test_rules
+version: 0.1.0
+rules:
+  - id: RF_TEST_001
+    label: A test criterion
+    any_of:
+      - all_of: [atom_one, atom_two]
+      - all_of: [atom_three]
+    modifiers:
+      escalate_if: [atom_four]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+"""
+
+VERIFIED_SET = """
+name: verified_rules
+version: 1.0.0
+rules:
+  - id: RF_SCOPE_001
+    label: A scope boundary, not a clinical threshold
+    any_of:
+      - all_of: [atom_one]
+    action: ANNOTATE
+    source: Product scope decision.
+    verified_on: 2026-09-06
+    verify_before_ship: false
+"""
+
+
+@pytest.fixture
+def rule_dir(tmp_path: Path) -> Path:
+    directory = tmp_path / "red_flags"
+    directory.mkdir()
+    return directory
+
+
+@pytest.fixture
+def atoms() -> dict[str, Predicate]:
+    return {
+        name: Predicate(id=name, field="diaphoresis", comparator=Comparator.IS_TRUE)
+        for name in ("atom_one", "atom_two", "atom_three", "atom_four")
+    }
+
+
+def write(directory: Path, name: str, body: str) -> Path:
+    path = directory / name
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+class TestLoadingOneSet:
+    def test_loads_a_valid_rule_set(self, rule_dir: Path) -> None:
+        path = write(rule_dir, "test.yaml", UNVERIFIED_SET)
+        loaded = load_rule_set(path, RedFlagAction)
+        assert loaded.name == "test_rules"
+        assert len(loaded.rules) == 1
+
+    def test_a_missing_file_names_the_path(self, tmp_path: Path) -> None:
+        with pytest.raises(RuleLoadError, match="no rule set at"):
+            load_rule_set(tmp_path / "absent.yaml", RedFlagAction)
+
+    def test_malformed_yaml_names_the_file(self, rule_dir: Path) -> None:
+        path = write(rule_dir, "bad.yaml", "rules: [unclosed")
+        with pytest.raises(RuleLoadError, match="not valid YAML"):
+            load_rule_set(path, RedFlagAction)
+
+    def test_a_non_mapping_document_is_rejected(self, rule_dir: Path) -> None:
+        path = write(rule_dir, "bad.yaml", "- a\n- list\n")
+        with pytest.raises(RuleLoadError, match="must contain a mapping"):
+            load_rule_set(path, RedFlagAction)
+
+    def test_an_unknown_action_is_rejected_at_load(self, rule_dir: Path) -> None:
+        """The service's vocabulary is checked here, not when the rule fires."""
+        path = write(
+            rule_dir, "bad.yaml", UNVERIFIED_SET.replace("TERMINATE_EMERGENCY", "SEND_A_LETTER")
+        )
+        with pytest.raises(RuleLoadError, match="not a valid rule set"):
+            load_rule_set(path, RedFlagAction)
+
+    def test_a_rule_without_a_source_is_rejected(self, rule_dir: Path) -> None:
+        path = write(
+            rule_dir,
+            "bad.yaml",
+            "name: n\nversion: 1\nrules:\n  - id: RF_X\n    label: x\n"
+            "    any_of:\n      - all_of: [atom_one]\n    action: ANNOTATE\n",
+        )
+        with pytest.raises(RuleLoadError, match="not a valid rule set"):
+            load_rule_set(path, RedFlagAction)
+
+
+class TestLoadingADirectory:
+    def test_loads_every_file(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        write(rule_dir, "b.yaml", VERIFIED_SET)
+        assert len(load_rule_sets(rule_dir, RedFlagAction)) == 2
+
+    def test_a_missing_directory_names_itself(self, tmp_path: Path) -> None:
+        with pytest.raises(RuleLoadError, match="does not exist"):
+            load_rule_sets(tmp_path / "absent", RedFlagAction)
+
+    def test_an_empty_directory_is_rejected(self, rule_dir: Path) -> None:
+        with pytest.raises(RuleLoadError, match="no rule files"):
+            load_rule_sets(rule_dir, RedFlagAction)
+
+    def test_a_duplicate_rule_id_across_files_names_both(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        write(rule_dir, "b.yaml", UNVERIFIED_SET.replace("name: test_rules", "name: other_rules"))
+        with pytest.raises(RuleLoadError, match="exactly one rule"):
+            load_rule_sets(rule_dir, RedFlagAction)
+
+    def test_all_rules_flattens_across_sets(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        write(rule_dir, "b.yaml", VERIFIED_SET)
+        assert len(all_rules(load_rule_sets(rule_dir, RedFlagAction))) == 2
+
+
+class TestAtomResolution:
+    def test_resolved_atoms_pass(self, rule_dir: Path, atoms: dict[str, Predicate]) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        resolve_atoms(load_rule_sets(rule_dir, RedFlagAction), atoms)
+
+    def test_an_unresolved_atom_fails_the_load(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        with pytest.raises(RuleLoadError, match="cannot fire"):
+            resolve_atoms(load_rule_sets(rule_dir, RedFlagAction), {})
+
+    def test_the_error_names_the_rule_and_the_atom(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        with pytest.raises(RuleLoadError) as caught:
+            resolve_atoms(load_rule_sets(rule_dir, RedFlagAction), {})
+        message = str(caught.value)
+        assert "RF_TEST_001" in message
+        assert "atom_one" in message
+
+    def test_modifier_atoms_are_resolved_too(
+        self, rule_dir: Path, atoms: dict[str, Predicate]
+    ) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        without_modifier = {k: v for k, v in atoms.items() if k != "atom_four"}
+        with pytest.raises(RuleLoadError, match="atom_four"):
+            resolve_atoms(load_rule_sets(rule_dir, RedFlagAction), without_modifier)
+
+    def test_every_unresolved_atom_is_reported_at_once(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        with pytest.raises(RuleLoadError) as caught:
+            resolve_atoms(load_rule_sets(rule_dir, RedFlagAction), {})
+        assert "4 rule atom(s)" in str(caught.value)
+
+
+class TestVerificationGate:
+    """An unverified criterion cannot ship by being forgotten."""
+
+    def test_development_proceeds_with_unverified_rules(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        require_verified(load_rule_sets(rule_dir, RedFlagAction), allow_unverified=True)
+
+    def test_release_refuses_unverified_rules(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        with pytest.raises(UnverifiedRulesError, match="cannot ship"):
+            require_verified(load_rule_sets(rule_dir, RedFlagAction), allow_unverified=False)
+
+    def test_the_refusal_names_each_pending_rule_and_its_source(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        with pytest.raises(UnverifiedRulesError) as caught:
+            require_verified(load_rule_sets(rule_dir, RedFlagAction), allow_unverified=False)
+        message = str(caught.value)
+        assert "RF_TEST_001" in message
+        assert "PLACEHOLDER" in message
+        assert "NIDANA_ALLOW_UNVERIFIED_RULES" in message
+
+    def test_a_verified_rule_set_ships(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", VERIFIED_SET)
+        require_verified(load_rule_sets(rule_dir, RedFlagAction), allow_unverified=False)
+
+    def test_one_unverified_rule_blocks_a_mixed_set(self, rule_dir: Path) -> None:
+        write(rule_dir, "a.yaml", UNVERIFIED_SET)
+        write(rule_dir, "b.yaml", VERIFIED_SET)
+        with pytest.raises(UnverifiedRulesError, match="1 rule"):
+            require_verified(load_rule_sets(rule_dir, RedFlagAction), allow_unverified=False)
+
+
+class TestShippedRules:
+    def test_the_shipped_red_flags_load_and_resolve(self) -> None:
+        sets = load_rule_sets(rules_dir("consult", "red_flags"), RedFlagAction)
+        resolve_atoms(sets, load_predicates())
+
+    def test_the_shipped_rules_cannot_ship_to_production_yet(self) -> None:
+        """Thirty of thirty-one criteria await clinician verification."""
+        sets = load_rule_sets(rules_dir("consult", "red_flags"), RedFlagAction)
+        with pytest.raises(UnverifiedRulesError):
+            require_verified(sets, allow_unverified=False)
+
+    def test_rules_dir_points_into_the_named_service(self) -> None:
+        assert rules_dir("consult", "red_flags").parts[-3:] == ("consult", "rules", "red_flags")
