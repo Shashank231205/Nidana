@@ -1,0 +1,69 @@
+# Predicates over fever, respiratory, and general systemic fields.
+predicates:
+  - id: fever_reported_present
+    field: fever_reported
+    comparator: is_true
+
+  - id: rigors_present
+    field: rigors
+    comparator: is_true
+
+  - id: rash_present
+    field: rash
+    comparator: is_true
+
+  - id: oral_intake_minimal_or_none
+    field: oral_intake
+    comparator: in
+    values: [minimal, none]
+
+  - id: urine_output_reduced_or_absent
+    field: urine_output
+    comparator: in
+    values: [reduced, none]
+
+  - id: bleeding_from_any_site_present
+    field: bleeding_from_any_site
+    comparator: is_true
+
+  - id: immunosuppression_known_present
+    field: immunosuppression_known
+    comparator: is_true
+
+  - id: breathing_difficulty_present
+    field: breathing_difficulty
+    comparator: is_true
+
+  - id: breathless_at_rest
+    field: severity_at_rest
+    comparator: is_true
+
+  - id: unable_to_speak_sentences
+    field: exertional_tolerance
+    comparator: equals
+    value: unable_to_speak_sentences
+
+  - id: stridor_present
+    field: stridor
+    comparator: is_true
+
+  - id: wheeze_present
+    field: wheeze
+    comparator: is_true
+
+  - id: lip_or_tongue_swelling_present
+    field: lip_or_tongue_swelling
+    comparator: is_true
+
+  - id: allergen_exposure_present
+    field: allergen_exposure
+    comparator: is_true
+
+  - id: getting_worse_present
+    field: getting_worse
+    comparator: is_true
+
+  - id: unable_to_function
+    field: functioning_affected
+    comparator: equals
+    value: unable_to_function

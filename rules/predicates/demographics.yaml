@@ -1,0 +1,59 @@
+# Predicates over demographic and pregnancy fields.
+# Age boundaries here are cohort definitions used by rule modifiers, not
+# diagnostic thresholds. A rule that turns on one carries its own citation.
+predicates:
+  - id: age_recorded
+    field: age_years
+    comparator: is_present
+
+  - id: age_over_40
+    field: age_years
+    comparator: greater_than
+    value: 40
+
+  - id: age_over_60
+    field: age_years
+    comparator: greater_than
+    value: 60
+
+  - id: age_over_50
+    field: age_years
+    comparator: greater_than
+    value: 50
+
+  - id: age_under_18
+    field: age_years
+    comparator: less_than
+    value: 18
+
+  - id: age_under_5
+    field: age_years
+    comparator: less_than
+    value: 5
+
+  - id: age_under_2
+    field: age_years
+    comparator: less_than
+    value: 2
+    description: >-
+      docs/PRD.md section 4.9 routes under-2 to a human rather than treating it
+      as a primary path.
+
+  - id: sex_female
+    field: sex
+    comparator: equals
+    value: female
+
+  - id: pregnancy_possible_or_confirmed
+    field: pregnancy_status
+    comparator: in
+    values: [possible, confirmed]
+
+  - id: pregnancy_confirmed_status
+    field: pregnancy_status
+    comparator: equals
+    value: confirmed
+
+  - id: is_proxy_report
+    field: is_proxy
+    comparator: is_true

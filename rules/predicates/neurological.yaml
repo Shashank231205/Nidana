@@ -1,0 +1,79 @@
+# Predicates over neurological and headache fields.
+predicates:
+  - id: face_asymmetry_present
+    field: face_asymmetry
+    comparator: is_true
+
+  - id: arm_weakness_present
+    field: arm_weakness
+    comparator: in
+    values: [left, right, both]
+
+  - id: leg_weakness_present
+    field: leg_weakness
+    comparator: in
+    values: [left, right, both]
+
+  - id: speech_disturbance_present
+    field: speech_disturbance
+    comparator: in
+    values: [slurred, word_finding_difficulty, unable_to_speak]
+
+  - id: visual_loss_present
+    field: visual_loss
+    comparator: in
+    values: [one_eye, one_side_both_eyes]
+
+  - id: neurological_onset_sudden
+    field: onset_speed
+    comparator: equals
+    value: sudden
+
+  - id: deficit_resolved
+    field: symptoms_resolved
+    comparator: is_true
+
+  - id: seizure_present
+    field: seizure_activity
+    comparator: is_true
+
+  - id: altered_consciousness_present
+    field: altered_consciousness
+    comparator: is_true
+
+  - id: anticoagulant_use_present
+    field: anticoagulant_use
+    comparator: is_true
+
+  - id: headache_worst_ever
+    field: worst_ever
+    comparator: is_true
+
+  - id: neck_stiffness_present
+    field: neck_stiffness
+    comparator: is_true
+
+  - id: photophobia_present
+    field: photophobia
+    comparator: is_true
+
+  - id: headache_visual_disturbance
+    field: visual_disturbance
+    comparator: in
+    values: [blurring, double_vision, loss_of_vision, halos]
+
+  - id: focal_weakness_present
+    field: focal_weakness
+    comparator: is_true
+
+  - id: head_injury_recent_present
+    field: head_injury_recent
+    comparator: is_true
+
+  - id: jaw_claudication_present
+    field: jaw_claudication
+    comparator: is_true
+
+  - id: scalp_tenderness_present
+    field: scalp_tenderness
+    comparator: is_true

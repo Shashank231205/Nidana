@@ -1,0 +1,67 @@
+# Predicates over cardiac and chest presentation fields.
+# These name states; they do not decide urgency. Rules in rules/red_flags/
+# combine them, and those rules carry the clinical citations.
+predicates:
+  - id: chest_pain_present
+    field: presenting_complaint_text
+    comparator: is_present
+    description: A chest pain record exists for this session.
+
+  - id: pain_radiates_to_jaw_or_left_arm
+    field: radiation
+    comparator: in
+    values: [jaw, left_arm]
+
+  - id: pain_radiates_to_back
+    field: radiation
+    comparator: in
+    values: [back]
+
+  - id: diaphoresis_present
+    field: diaphoresis
+    comparator: is_true
+
+  - id: dyspnoea_present
+    field: dyspnoea
+    comparator: is_true
+
+  - id: pain_worse_on_exertion
+    field: exertional_relation
+    comparator: equals
+    value: worse_on_exertion
+
+  - id: pain_character_tearing
+    field: character
+    comparator: equals
+    value: tearing
+
+  - id: pain_character_pressure_or_tightness
+    field: character
+    comparator: in
+    values: [pressure, tightness]
+
+  - id: pain_onset_sudden
+    field: onset_speed
+    comparator: equals
+    value: sudden
+
+  - id: syncope_present
+    field: syncope
+    comparator: is_true
+
+  - id: palpitations_present
+    field: palpitations
+    comparator: is_true
+
+  - id: haemoptysis_present
+    field: haemoptysis
+    comparator: is_true
+
+  - id: unilateral_leg_swelling
+    field: leg_swelling
+    comparator: equals
+    value: unilateral
+
+  - id: recent_immobility_present
+    field: recent_immobility
+    comparator: is_true

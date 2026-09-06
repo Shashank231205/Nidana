@@ -1,0 +1,73 @@
+# Predicates over mental health risk and trauma fields.
+# These name what the patient stated. docs/PRD.md section 4.9 limits this module
+# to risk detection and escalation; nothing here scores or stratifies risk.
+predicates:
+  - id: suicidal_ideation_present
+    field: suicidal_ideation
+    comparator: is_true
+
+  - id: suicidal_plan_present
+    field: suicidal_plan
+    comparator: is_true
+
+  - id: suicidal_intent_present
+    field: suicidal_intent
+    comparator: is_true
+
+  - id: self_harm_act_recent_present
+    field: self_harm_act_recent
+    comparator: is_true
+
+  - id: means_available_present
+    field: means_available
+    comparator: is_true
+
+  - id: harm_to_others_ideation_present
+    field: harm_to_others_ideation
+    comparator: is_true
+
+  - id: patient_is_alone
+    field: someone_present_with_patient
+    comparator: is_false
+
+  - id: psychotic_symptoms_present
+    field: psychotic_symptoms
+    comparator: is_true
+
+  - id: loss_of_consciousness_present
+    field: loss_of_consciousness
+    comparator: is_true
+
+  - id: bleeding_active_present
+    field: bleeding_active
+    comparator: is_true
+
+  - id: penetrating_mechanism
+    field: mechanism
+    comparator: in
+    values: [penetrating]
+
+  - id: high_energy_mechanism
+    field: mechanism
+    comparator: in
+    values: [road_traffic_collision, crush, machinery]
+
+  - id: unable_to_bear_weight
+    field: able_to_bear_weight
+    comparator: is_false
+
+  - id: deformity_visible_present
+    field: deformity_visible
+    comparator: is_true
+
+  - id: amnesia_for_event_present
+    field: amnesia_for_event
+    comparator: is_true
+
+  - id: vomiting_since_injury_present
+    field: vomiting_since_injury
+    comparator: is_true
+
+  - id: chemical_or_electrical_involved_present
+    field: chemical_or_electrical_involved
+    comparator: is_true

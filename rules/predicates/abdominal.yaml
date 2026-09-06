@@ -1,0 +1,84 @@
+# Predicates over abdominal, obstetric, and gastrointestinal fields.
+predicates:
+  - id: abdominal_pain_reported
+    field: abdominal_pain
+    comparator: is_true
+
+  - id: abdominal_tenderness_reported_present
+    field: abdominal_tenderness_reported
+    comparator: is_true
+
+  - id: abdominal_onset_sudden
+    field: onset_speed
+    comparator: equals
+    value: sudden
+
+  - id: pain_worse_on_movement
+    field: relation_to_movement
+    comparator: equals
+    value: worse_on_movement
+
+  - id: bowels_absent
+    field: bowels_open
+    comparator: equals
+    value: absent
+    description: Neither stool nor flatus passed.
+
+  - id: vomiting_present
+    field: vomiting
+    comparator: is_true
+
+  - id: haematemesis_present
+    field: haematemesis
+    comparator: is_true
+
+  - id: black_stool_present
+    field: black_stool
+    comparator: is_true
+
+  - id: blood_in_stool_present
+    field: blood_in_stool
+    comparator: is_true
+
+  - id: vaginal_bleeding_reported
+    field: vaginal_bleeding
+    comparator: is_true
+
+  - id: obstetric_bleeding_moderate_or_heavy
+    field: vaginal_bleeding
+    comparator: in
+    values: [moderate, heavy]
+
+  - id: shoulder_tip_pain_present
+    field: shoulder_tip_pain
+    comparator: is_true
+
+  - id: dizziness_or_fainting_present
+    field: dizziness_or_fainting
+    comparator: is_true
+
+  - id: fluid_leaking_present
+    field: fluid_leaking
+    comparator: is_true
+
+  - id: fetal_movements_reduced_or_absent
+    field: fetal_movements
+    comparator: in
+    values: [reduced, absent]
+
+  - id: obstetric_visual_disturbance
+    field: visual_disturbance
+    comparator: is_true
+
+  - id: epigastric_pain_present
+    field: epigastric_pain
+    comparator: is_true
+
+  - id: swelling_face_or_hands_present
+    field: swelling_face_or_hands
+    comparator: is_true
+
+  - id: testicular_or_groin_pain_radiation
+    field: radiation
+    comparator: in
+    values: [groin]
