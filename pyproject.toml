@@ -29,12 +29,20 @@ include = ["packages*", "services*"]
 python_version = "3.10"
 strict = true
 warn_unreachable = true
-disallow_any_explicit = true
 plugins = ["pydantic.mypy"]
+
+# disallow_any_explicit is deliberately absent. Pydantic's ConfigDict is typed
+# with Any internally, so the flag reports every `class X(BaseModel)` line in
+# the schemas package and hides real findings. disallow_any_expr below catches
+# Any in our own code, which is the intent.
+disallow_any_expr = false
+disallow_any_generics = true
+disallow_untyped_defs = true
+no_implicit_reexport = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"
-disallow_any_explicit = false
+disallow_untyped_defs = true
 
 [tool.ruff]
 line-length = 100

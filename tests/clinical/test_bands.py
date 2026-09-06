@@ -5,6 +5,8 @@ ADR 0004. The input domain is 25 ordered pairs, so 'exhaustive' here is literal.
 
 from __future__ import annotations
 
+import operator
+from collections.abc import Callable
 from itertools import product
 
 import pytest
@@ -91,17 +93,20 @@ def test_most_urgent_never_falls_below_its_floor() -> None:
     assert most_urgent((Band.U5, Band.U4), Band.U3) is Band.U3
 
 
+ORDERING_OPERATORS: tuple[Callable[[Band, Band], bool], ...] = (
+    operator.lt,
+    operator.gt,
+    operator.le,
+    operator.ge,
+)
+
+
 @pytest.mark.parametrize("band", ALL_BANDS)
 def test_bands_refuse_ordering_comparison(band: Band) -> None:
     for other in ALL_BANDS:
-        for operation in (
-            lambda: band < other,
-            lambda: band > other,
-            lambda: band <= other,
-            lambda: band >= other,
-        ):
+        for compare in ORDERING_OPERATORS:
             with pytest.raises(TypeError, match="opposite directions"):
-                operation()
+                compare(band, other)
 
 
 def test_urgency_ranks_are_distinct_and_ordered_u1_highest() -> None:

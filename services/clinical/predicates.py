@@ -9,6 +9,10 @@ correction rather than the superseded original.
 
 from __future__ import annotations
 
+import operator
+from collections.abc import Callable
+from typing import Final
+
 from packages.schemas.finding import Finding
 from packages.schemas.predicate import Comparator, Predicate, PredicateOperand
 from packages.schemas.primitives import Quantity
@@ -67,35 +71,44 @@ def _as_number(value: PredicateOperand, predicate: Predicate) -> float:
     return float(value)
 
 
+_NUMERIC_TESTS: Final[dict[Comparator, Callable[[float, float], bool]]] = {
+    Comparator.GREATER_THAN: operator.gt,
+    Comparator.LESS_THAN: operator.lt,
+    Comparator.AT_LEAST: operator.ge,
+    Comparator.AT_MOST: operator.le,
+}
+
+
+_SHAPE_TESTS: Final[dict[Comparator, Callable[[PredicateOperand], bool]]] = {
+    Comparator.IS_PRESENT: lambda _: True,
+    Comparator.IS_TRUE: lambda value: value is True,
+    Comparator.IS_FALSE: lambda value: value is False,
+}
+
+
+def _evaluate_numeric(predicate: Predicate, value: PredicateOperand) -> bool:
+    operand = _as_number(predicate.value, predicate) if predicate.value is not None else 0.0
+    return _NUMERIC_TESTS[predicate.comparator](_as_number(value, predicate), operand)
+
+
 def evaluate(predicate: Predicate, record: Record) -> bool:
     """Whether `predicate` holds for `record`.
 
     A field the record does not carry evaluates False for every comparator
-    except is_false, which is also False: absence is not a denial. Only an
-    explicit negated finding makes is_false true.
+    including is_false: absence is not a denial. Only an explicit negated
+    finding makes is_false true.
     """
     value = _record_value(record, predicate.field)
     if value is None:
         return False
-    if predicate.comparator is Comparator.IS_PRESENT:
-        return True
-    if predicate.comparator is Comparator.IS_TRUE:
-        return value is True
-    if predicate.comparator is Comparator.IS_FALSE:
-        return value is False
-    if predicate.comparator is Comparator.EQUALS:
+    comparator = predicate.comparator
+    if comparator in _NUMERIC_TESTS:
+        return _evaluate_numeric(predicate, value)
+    if comparator is Comparator.EQUALS:
         return value == predicate.value
-    if predicate.comparator is Comparator.IN:
+    if comparator is Comparator.IN:
         return value in predicate.values
-    operand = _as_number(predicate.value, predicate) if predicate.value is not None else 0.0
-    number = _as_number(value, predicate)
-    if predicate.comparator is Comparator.GREATER_THAN:
-        return number > operand
-    if predicate.comparator is Comparator.LESS_THAN:
-        return number < operand
-    if predicate.comparator is Comparator.AT_LEAST:
-        return number >= operand
-    return number <= operand
+    return _SHAPE_TESTS[comparator](value)
 
 
 def evaluate_any(predicates: tuple[Predicate, ...], record: Record) -> bool:

@@ -1,19 +1,34 @@
-"""The shared clinical record and its per-module context.
+"""The shared clinical record and its per-service context.
 
-ADR 0001. `Record` holds what every module has. Module-specific state lives in
-a named context object, so Scribe, Rx, Labs, and Forensics extend the record
-rather than defining their own.
+ADR 0001 and NIDANA.md section 5. `Record` holds what every service has:
+subject, findings, demographics, comorbidities, medications, allergies.
+Service-specific state lives in a named context object, so Scribe, Rx, Labs,
+and Forensics extend the record rather than defining their own.
+
+Forensics is the exception to the sharing. NIDANA.md section 5 isolates it
+evidentially: it writes to its own chain and reads no shared data, because
+contamination from other sources is an attack surface in court. It uses this
+shape; it does not use anyone else's instance of it.
 """
 
 from __future__ import annotations
 
+from enum import Enum
+from typing import Final
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from packages.schemas.finding import Finding
 from packages.schemas.primitives import Coding, PregnancyStatus, Sex
-from packages.schemas.registry import ComplaintFamily, FamilyRegistry
+from packages.schemas.registry import ComplaintFamily
+
+PAEDIATRIC_AGE_CEILING_YEARS: Final[int] = 18
+"""Age below which paediatric rule modifiers apply.
+
+A cohort boundary, not a clinical threshold. Rules that turn on it carry their
+own citation; this constant only says where the cohort ends.
+"""
 
 
 class Demographics(BaseModel):
@@ -30,7 +45,7 @@ class Demographics(BaseModel):
         clinical layer treats an unknown age as requiring the modifier where a
         rule declares one. Absence of data is not evidence of an adult.
         """
-        return self.age_years is not None and self.age_years < 18
+        return self.age_years is not None and self.age_years < PAEDIATRIC_AGE_CEILING_YEARS
 
 
 class Comorbidity(BaseModel):
@@ -92,15 +107,30 @@ class ConsultContext(BaseModel):
     sufficiency: Sufficiency | None = None
 
 
+class SubjectType(str, Enum):
+    """What produced a record. One per service.
+
+    ADR 0006 made the audit log polymorphic for the same reason: Rx works from a
+    prescription and Labs from a report, and neither is a session.
+    """
+
+    SESSION = "session"
+    ENCOUNTER = "encounter"
+    PRESCRIPTION = "prescription"
+    REPORT = "report"
+    EXAMINATION = "examination"
+
+
 class Record(BaseModel):
     """The accumulated clinical picture for one subject.
 
-    Shared spine. Everything here is meaningful to every module.
+    Shared spine. Everything here is meaningful to every service.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    session_id: UUID
+    subject_type: SubjectType
+    subject_id: UUID
     findings: tuple[Finding, ...] = ()
     demographics: Demographics = Demographics()
     comorbidities: tuple[Comorbidity, ...] = ()
@@ -109,13 +139,16 @@ class Record(BaseModel):
     consult: ConsultContext = ConsultContext()
 
     def findings_for(self, field: str) -> tuple[Finding, ...]:
-        """Every finding recorded for `field`, oldest turn first.
+        """Every finding recorded for `field`, oldest first.
 
-        More than one is normal: a patient revises an answer, and both the
-        original and the correction are kept. Corrections are new rows.
+        More than one is normal: a source revises a fact, and both the original
+        and the correction are kept. Corrections are new rows.
+
+        Order is the order findings were appended. Consult could sort by turn,
+        but Scribe, Rx, Labs, and Forensics have no turns, and every service
+        appends as it extracts.
         """
-        matched = tuple(f for f in self.findings if f.field == field)
-        return tuple(sorted(matched, key=lambda f: f.turn_index))
+        return tuple(f for f in self.findings if f.field == field)
 
     def latest_finding_for(self, field: str) -> Finding | None:
         """The most recent statement about `field`, or None if never stated."""
