@@ -1,0 +1,55 @@
+# Predicates over the record's own classification.
+#
+# These test what the session is about, not what the patient said. A rule uses
+# one to scope itself to a presentation without depending on a field that
+# family happens to declare.
+predicates:
+  - id: family_is_chest_pain
+    field: complaint_family
+    comparator: equals
+    value: chest_pain
+
+  - id: family_is_abdominal_pain
+    field: complaint_family
+    comparator: equals
+    value: abdominal_pain
+
+  - id: family_is_headache
+    field: complaint_family
+    comparator: equals
+    value: headache
+
+  - id: family_is_breathlessness
+    field: complaint_family
+    comparator: equals
+    value: breathlessness
+
+  - id: family_is_fever
+    field: complaint_family
+    comparator: equals
+    value: fever
+
+  - id: family_is_neurological_deficit
+    field: complaint_family
+    comparator: equals
+    value: neurological_deficit
+
+  - id: family_is_obstetric
+    field: complaint_family
+    comparator: equals
+    value: obstetric
+
+  - id: family_is_mental_health
+    field: complaint_family
+    comparator: equals
+    value: mental_health
+
+  - id: family_is_trauma
+    field: complaint_family
+    comparator: equals
+    value: trauma
+
+  - id: family_is_pain_presentation
+    field: complaint_family
+    comparator: in
+    values: [chest_pain, abdominal_pain, headache]

@@ -3,9 +3,13 @@
 # combine them, and those rules carry the clinical citations.
 predicates:
   - id: chest_pain_present
-    field: presenting_complaint_text
-    comparator: is_present
-    description: A chest pain record exists for this session.
+    field: complaint_family
+    comparator: equals
+    value: chest_pain
+    description: >-
+      The session is classified as chest pain. Tests the record's classification
+      rather than a field, because the family is what the record is about and is
+      not something the patient said.
 
   - id: pain_radiates_to_jaw_or_left_arm
     field: radiation

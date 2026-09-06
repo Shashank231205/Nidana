@@ -1,0 +1,103 @@
+# Neurological red flags.
+#
+# EVERY RULE IN THIS FILE IS UNVERIFIED. See cardiorespiratory.yaml for what
+# that means and what must happen before any of these ship.
+name: consult_red_flags_neurological
+version: 0.1.0
+
+rules:
+  - id: RF_STROKE_001
+    label: Possible stroke
+    any_of:
+      - all_of: [face_asymmetry_present, neurological_onset_sudden]
+      - all_of: [arm_weakness_present, neurological_onset_sudden]
+      - all_of: [speech_disturbance_present, neurological_onset_sudden]
+      - all_of: [visual_loss_present, neurological_onset_sudden]
+    modifiers:
+      escalate_if: [anticoagulant_use_present]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      PLACEHOLDER pending clinician review. Intended source: FAST screening plus
+      current stroke guidance. Not checked.
+    notes: >-
+      last_known_well_hours is a required field for this family and is captured
+      to the clock, because reperfusion eligibility times from it rather than
+      from when the deficit was noticed. This rule does not encode the window;
+      the window is a clinical threshold and needs a verified source before it
+      is written anywhere.
+    verify_before_ship: true
+
+  - id: RF_TIA_001
+    label: Resolved focal neurological deficit
+    any_of:
+      - all_of: [deficit_resolved, face_asymmetry_present]
+      - all_of: [deficit_resolved, arm_weakness_present]
+      - all_of: [deficit_resolved, speech_disturbance_present]
+    action: ESCALATE_BAND
+    source: PLACEHOLDER pending clinician review.
+    notes: >-
+      A patient whose symptoms have resolved is still time-critical. Feeling
+      better now is not reassurance, and the intake agent must not treat it as
+      such.
+    verify_before_ship: true
+
+  - id: RF_SAH_001
+    label: Thunderclap headache
+    any_of:
+      - all_of: [headache_worst_ever, neurological_onset_sudden]
+      - all_of: [headache_worst_ever, vomiting_present]
+      - all_of: [headache_worst_ever, neck_stiffness_present]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      PLACEHOLDER pending clinician review. time_to_peak_minutes is captured as
+      its own required field so that a verified time-to-peak criterion can be
+      added here without a schema change.
+    verify_before_ship: true
+
+  - id: RF_MENINGISM_001
+    label: Possible meningitis
+    any_of:
+      - all_of: [neck_stiffness_present, fever_reported_present]
+      - all_of: [neck_stiffness_present, photophobia_present]
+      - all_of: [fever_reported_present, rash_present, altered_consciousness_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_RAISED_ICP_001
+    label: Features suggesting raised intracranial pressure
+    any_of:
+      - all_of: [headache_visual_disturbance, vomiting_present]
+      - all_of: [focal_weakness_present, headache_worst_ever]
+      - all_of: [head_injury_recent_present, altered_consciousness_present]
+    modifiers:
+      escalate_if: [anticoagulant_use_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_SEIZURE_001
+    label: Seizure activity
+    any_of:
+      - all_of: [seizure_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_TEMPORAL_ARTERITIS_001
+    label: Features suggesting temporal arteritis
+    any_of:
+      - all_of: [scalp_tenderness_present, age_over_50]
+      - all_of: [jaw_claudication_present, age_over_50]
+      - all_of: [headache_visual_disturbance, scalp_tenderness_present]
+    action: ESCALATE_BAND
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_VISION_LOSS_001
+    label: Acute vision loss
+    any_of:
+      - all_of: [visual_loss_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true

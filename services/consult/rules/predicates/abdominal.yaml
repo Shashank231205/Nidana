@@ -1,8 +1,17 @@
 # Predicates over abdominal, obstetric, and gastrointestinal fields.
 predicates:
   - id: abdominal_pain_reported
+    field: complaint_family
+    comparator: equals
+    value: abdominal_pain
+    description: >-
+      The session is classified as abdominal pain. The obstetric family declares
+      an abdominal_pain boolean separately; obstetric_abdominal_pain tests that.
+
+  - id: obstetric_abdominal_pain
     field: abdominal_pain
     comparator: is_true
+    description: Abdominal pain reported within an obstetric presentation.
 
   - id: abdominal_tenderness_reported_present
     field: abdominal_tenderness_reported

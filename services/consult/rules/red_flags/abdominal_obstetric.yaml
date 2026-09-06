@@ -1,0 +1,91 @@
+# Abdominal and obstetric red flags.
+#
+# EVERY RULE IN THIS FILE IS UNVERIFIED. See cardiorespiratory.yaml.
+name: consult_red_flags_abdominal_obstetric
+version: 0.1.0
+
+rules:
+  - id: RF_PERITONISM_001
+    label: Acute abdomen with peritonism
+    any_of:
+      - all_of: [abdominal_tenderness_reported_present, pain_worse_on_movement]
+      - all_of: [abdominal_onset_sudden, abdominal_tenderness_reported_present, vomiting_present]
+      - all_of: [bowels_absent, vomiting_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    notes: >-
+      bowels_absent means neither stool nor flatus passed, which is a different
+      fact from constipation. The field registry states this so the intake agent
+      asks for it specifically.
+    verify_before_ship: true
+
+  - id: RF_ECTOPIC_001
+    label: Possible ectopic pregnancy
+    any_of:
+      - all_of: [abdominal_pain_reported, pregnancy_possible_or_confirmed]
+      - all_of: [obstetric_abdominal_pain, pregnancy_possible_or_confirmed]
+      - all_of: [abdominal_pain_reported, sex_female, vaginal_bleeding_reported]
+      - all_of: [shoulder_tip_pain_present, sex_female]
+    modifiers:
+      escalate_if: [dizziness_or_fainting_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    notes: >-
+      Fires on suspicion rather than confirmation. A negative or absent
+      pregnancy test does not suppress this, and pregnancy_status unknown is
+      not treated as not-pregnant.
+    verify_before_ship: true
+
+  - id: RF_OBSTETRIC_BLEED_001
+    label: Obstetric bleeding
+    any_of:
+      - all_of: [obstetric_bleeding_moderate_or_heavy, pregnancy_confirmed_status]
+      - all_of: [obstetric_bleeding_moderate_or_heavy, obstetric_abdominal_pain]
+    modifiers:
+      escalate_if: [dizziness_or_fainting_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_PRE_ECLAMPSIA_001
+    label: Features suggesting pre-eclampsia
+    any_of:
+      - all_of: [obstetric_visual_disturbance, pregnancy_confirmed_status]
+      - all_of: [epigastric_pain_present, pregnancy_confirmed_status]
+      - all_of: [swelling_face_or_hands_present, obstetric_visual_disturbance]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      PLACEHOLDER pending clinician review. No blood pressure threshold is
+      encoded here because Consult does not measure blood pressure; this rule
+      turns on reported symptoms only.
+    verify_before_ship: true
+
+  - id: RF_REDUCED_FETAL_MOVEMENT_001
+    label: Reduced or absent fetal movements
+    any_of:
+      - all_of: [fetal_movements_reduced_or_absent, pregnancy_confirmed_status]
+    action: ESCALATE_BAND
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_TORSION_001
+    label: Possible testicular torsion
+    any_of:
+      - all_of: [testicular_or_groin_pain_radiation, abdominal_onset_sudden, vomiting_present]
+      - all_of: [testicular_or_groin_pain_radiation, abdominal_onset_sudden, age_under_18]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      PLACEHOLDER pending clinician review. This is time-critical and commonly
+      misrouted; a clinician should confirm whether the criteria here are wide
+      enough.
+    verify_before_ship: true
+
+  - id: RF_GI_BLEED_001
+    label: Gastrointestinal bleeding
+    any_of:
+      - all_of: [haematemesis_present]
+      - all_of: [black_stool_present, dizziness_or_fainting_present]
+      - all_of: [blood_in_stool_present, dizziness_or_fainting_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true

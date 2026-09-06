@@ -18,7 +18,16 @@ from spine.schemas.predicate import Comparator, Predicate, PredicateOperand
 from spine.schemas.primitives import Quantity
 from spine.schemas.record import Record
 
-DEMOGRAPHIC_FIELDS = frozenset({"age_years", "sex", "pregnancy_status", "is_proxy"})
+DEMOGRAPHIC_FIELDS = frozenset(
+    {"age_years", "sex", "pregnancy_status", "is_proxy", "complaint_family"}
+)
+"""Fields read from the record itself rather than from a finding.
+
+complaint_family is here rather than in a registry because it classifies the
+record; it is not something the patient said. A predicate testing it is how a
+rule scopes itself to one presentation without depending on a field that
+family happens to declare.
+"""
 
 
 class PredicateEvaluationError(ValueError):
@@ -59,6 +68,9 @@ def _demographic_value(record: Record, field: str) -> PredicateOperand | None:
         return record.demographics.sex.value
     if field == "is_proxy":
         return record.consult.is_proxy
+    if field == "complaint_family":
+        family = record.consult.complaint_family
+        return None if family is None else family.value
     return record.consult.pregnancy_status.value
 
 

@@ -1,0 +1,122 @@
+# Sepsis, paediatric, mental health risk, and trauma red flags.
+#
+# EVERY RULE IN THIS FILE IS UNVERIFIED. See cardiorespiratory.yaml.
+name: consult_red_flags_systemic_risk
+version: 0.1.0
+
+rules:
+  - id: RF_SEPSIS_001
+    label: Sepsis screen positive
+    any_of:
+      - all_of: [fever_reported_present, altered_consciousness_present]
+      - all_of: [fever_reported_present, rigors_present, urine_output_reduced_or_absent]
+      - all_of: [fever_reported_present, breathing_difficulty_present]
+      - all_of: [fever_reported_present, rash_present, immunosuppression_known_present]
+    modifiers:
+      escalate_if: [age_over_60, age_under_5, immunosuppression_known_present]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      PLACEHOLDER pending clinician review. Consult takes no observations, so
+      this screen turns on reported symptoms rather than on a physiological
+      score. A clinician should decide whether that is sufficient or whether
+      this rule should be widened.
+    verify_before_ship: true
+
+  - id: RF_DKA_001
+    label: Features suggesting diabetic ketoacidosis
+    any_of:
+      - all_of: [breathing_difficulty_present, vomiting_present, oral_intake_minimal_or_none]
+      - all_of: [altered_consciousness_present, urine_output_reduced_or_absent, vomiting_present]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      PLACEHOLDER pending clinician review. Should almost certainly be gated on
+      known diabetes, which is not yet a predicate because comorbidities are not
+      a registry field. That gap is real and needs closing before this ships.
+    verify_before_ship: true
+
+  - id: RF_DEHYDRATION_001
+    label: Significant dehydration
+    any_of:
+      - all_of: [oral_intake_minimal_or_none, urine_output_reduced_or_absent]
+      - all_of: [vomiting_present, oral_intake_minimal_or_none, age_under_5]
+    modifiers:
+      escalate_if: [age_under_2, age_over_60]
+    action: ESCALATE_BAND
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_PAEDIATRIC_DANGER_001
+    label: Paediatric danger signs
+    any_of:
+      - all_of: [age_under_5, altered_consciousness_present]
+      - all_of: [age_under_5, breathing_difficulty_present]
+      - all_of: [age_under_5, oral_intake_minimal_or_none]
+      - all_of: [age_under_5, seizure_present]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      PLACEHOLDER pending clinician review. Intended source: WHO IMCI danger
+      signs. Not checked.
+    verify_before_ship: true
+
+  - id: RF_UNDER_TWO_001
+    label: Child under two
+    any_of:
+      - all_of: [age_under_2]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      Product scope decision, not a clinical criterion. Under-2 is excluded from
+      the automated path because the danger-sign profile differs enough to
+      warrant its own build. This rule routes to a human rather than triaging.
+    verified_on: 2026-09-06
+    verify_before_ship: false
+    notes: >-
+      The only rule here that is not awaiting clinical verification, because it
+      encodes a scope boundary rather than a clinical threshold. It must fire
+      before any other paediatric rule reasons about the child.
+
+  - id: RF_SUICIDE_RISK_001
+    label: Suicidal ideation with plan or intent
+    any_of:
+      - all_of: [suicidal_ideation_present, suicidal_plan_present]
+      - all_of: [suicidal_ideation_present, suicidal_intent_present]
+      - all_of: [self_harm_act_recent_present]
+    modifiers:
+      escalate_if: [means_available_present, patient_is_alone]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      PLACEHOLDER pending clinician review. Scope is detection and immediate
+      escalation only; Consult does not counsel. The patient-facing message for
+      this rule must route to a helpline and a human, and that message text
+      needs writing with clinical input.
+    verify_before_ship: true
+
+  - id: RF_HARM_TO_OTHERS_001
+    label: Stated intention to harm another person
+    any_of:
+      - all_of: [harm_to_others_ideation_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_TRAUMA_MAJOR_001
+    label: Major trauma mechanism or compromise
+    any_of:
+      - all_of: [penetrating_mechanism]
+      - all_of: [high_energy_mechanism, loss_of_consciousness_present]
+      - all_of: [bleeding_active_present, dizziness_or_fainting_present]
+      - all_of: [loss_of_consciousness_present, vomiting_since_injury_present]
+    modifiers:
+      escalate_if: [anticoagulant_use_present, age_over_60]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_HEAD_INJURY_001
+    label: Head injury with concerning features
+    any_of:
+      - all_of: [head_injury_recent_present, amnesia_for_event_present]
+      - all_of: [head_injury_recent_present, vomiting_since_injury_present]
+      - all_of: [head_injury_recent_present, anticoagulant_use_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true

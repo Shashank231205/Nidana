@@ -1,0 +1,94 @@
+# Cardiorespiratory red flags.
+#
+# EVERY RULE IN THIS FILE IS UNVERIFIED. The criteria below name the clinical
+# pattern each rule is meant to detect; the specific combinations have not been
+# checked against a current published guideline by a qualified clinician.
+#
+# verify_before_ship: true on every rule. A release build refuses to start while
+# any rule still carries it. Do not remove the flag without recording the
+# reviewer and the date in verified_on.
+name: consult_red_flags_cardiorespiratory
+version: 0.1.0
+
+rules:
+  - id: RF_ACS_001
+    label: Possible acute coronary syndrome
+    any_of:
+      - all_of: [chest_pain_present, pain_radiates_to_jaw_or_left_arm]
+      - all_of: [chest_pain_present, diaphoresis_present]
+      - all_of: [chest_pain_present, dyspnoea_present, age_over_40]
+      - all_of: [chest_pain_present, pain_character_pressure_or_tightness, pain_worse_on_exertion]
+    modifiers:
+      escalate_if: [age_over_60]
+    action: TERMINATE_EMERGENCY
+    source: >-
+      PLACEHOLDER pending clinician review. Intended sources: NICE CG95 (chest
+      pain of recent onset), AHA/ACC acute coronary syndrome guidance. Neither
+      has been checked; the combinations above are structural, not verified.
+    verify_before_ship: true
+    notes: >-
+      Diabetes is common and long-standing in this population and silent or
+      atypical presentation is more likely, which argues for a lower threshold
+      here than the source guidelines assume. That adjustment is a clinical
+      decision and has not been made.
+
+  - id: RF_AORTIC_001
+    label: Possible aortic dissection
+    any_of:
+      - all_of: [chest_pain_present, pain_character_tearing]
+      - all_of: [chest_pain_present, pain_radiates_to_back, pain_onset_sudden]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_PE_001
+    label: Possible pulmonary embolism
+    any_of:
+      - all_of: [dyspnoea_present, pain_onset_sudden, unilateral_leg_swelling]
+      - all_of: [dyspnoea_present, haemoptysis_present, pain_onset_sudden]
+      - all_of: [chest_pain_present, dyspnoea_present, recent_immobility_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_RESP_FAILURE_001
+    label: Respiratory compromise
+    any_of:
+      - all_of: [unable_to_speak_sentences]
+      - all_of: [stridor_present]
+      - all_of: [breathless_at_rest, altered_consciousness_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_ANAPHYLAXIS_001
+    label: Possible anaphylaxis
+    any_of:
+      - all_of: [lip_or_tongue_swelling_present, breathing_difficulty_present]
+      - all_of: [lip_or_tongue_swelling_present, stridor_present]
+      - all_of: [allergen_exposure_present, rash_present, breathing_difficulty_present]
+    action: TERMINATE_EMERGENCY
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_SYNCOPE_001
+    label: Syncope with cardiac features
+    any_of:
+      - all_of: [syncope_present, chest_pain_present]
+      - all_of: [syncope_present, palpitations_present]
+      - all_of: [syncope_present, pain_worse_on_exertion]
+    action: ESCALATE_BAND
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: RF_HAEMOPTYSIS_001
+    label: Significant haemoptysis
+    any_of:
+      - all_of: [haemoptysis_present, dyspnoea_present]
+      - all_of: [haemoptysis_present, chest_pain_present]
+    action: ESCALATE_BAND
+    source: >-
+      PLACEHOLDER pending clinician review. Tuberculosis prevalence in this
+      population changes the differential materially; a clinician should set the
+      threshold with that in mind.
+    verify_before_ship: true
