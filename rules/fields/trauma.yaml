@@ -1,0 +1,60 @@
+# Field registry for the trauma complaint family.
+# Mechanism is required because it drives everything downstream. The thresholds
+# that make a mechanism significant live in rules/red_flags/, not here.
+family: trauma
+
+required:
+  - field: time_since_injury_hours
+    type: number
+    unit: hours
+  - field: mechanism
+    type: enum
+    values: [fall, road_traffic_collision, assault, burn, penetrating, crush,
+             animal_bite, sports, machinery, unknown]
+    multi: true
+  - field: fall_height_metres
+    type: number
+    unit: metres
+  - field: injury_site
+    type: enum
+    values: [head, face, neck, chest, abdomen, pelvis, back, upper_limb, lower_limb,
+             multiple, unknown]
+    multi: true
+  - field: loss_of_consciousness
+    type: boolean
+  - field: bleeding_active
+    type: boolean
+  - field: able_to_bear_weight
+    type: boolean
+  - field: deformity_visible
+    type: boolean
+  - field: breathing_difficulty
+    type: boolean
+  - field: altered_consciousness
+    type: boolean
+
+optional:
+  - field: vomiting_since_injury
+    type: boolean
+  - field: amnesia_for_event
+    type: boolean
+  - field: numbness_or_weakness
+    type: boolean
+  - field: neck_pain
+    type: boolean
+  - field: wound_contaminated
+    type: boolean
+  - field: tetanus_immunisation_current
+    type: boolean
+  - field: anticoagulant_use
+    type: boolean
+  - field: burn_surface_estimate_percent
+    type: number
+    unit: percent
+  - field: chemical_or_electrical_involved
+    type: boolean
+  - field: assault_by_known_person
+    type: boolean
+    description: >-
+      Recorded because it affects safety planning and, in Module 5, medico-legal
+      documentation. Not used for clinical routing.

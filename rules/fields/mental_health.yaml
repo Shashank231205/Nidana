@@ -1,0 +1,59 @@
+# Field registry for the mental health complaint family.
+# docs/PRD.md section 4.9 puts counselling out of scope. This family exists to
+# detect risk and route, and the required fields are the ones risk detection
+# needs. Field names are descriptive; the risk criteria live in rules/red_flags/.
+family: mental_health
+
+required:
+  - field: onset_duration_hours
+    type: number
+    unit: hours
+  - field: suicidal_ideation
+    type: boolean
+  - field: suicidal_plan
+    type: boolean
+    description: Whether a specific method or plan has been formed.
+  - field: suicidal_intent
+    type: boolean
+    description: Whether the patient states an intention to act.
+  - field: self_harm_act_recent
+    type: boolean
+  - field: means_available
+    type: boolean
+  - field: harm_to_others_ideation
+    type: boolean
+  - field: mood
+    type: enum
+    values: [low, elevated, anxious, irritable, mixed, unknown]
+    multi: true
+  - field: sleep_disturbance
+    type: enum
+    values: [none, difficulty_falling_asleep, early_waking, excessive_sleep, unknown]
+  - field: functioning_affected
+    type: enum
+    values: [none, mild, moderate, unable_to_function, unknown]
+  - field: someone_present_with_patient
+    type: boolean
+    description: Whether the patient is currently alone. Affects the safety plan.
+
+optional:
+  - field: psychotic_symptoms
+    type: boolean
+  - field: substance_use
+    type: enum
+    values: [none, alcohol, tobacco, cannabis, opioid, other, unknown]
+    multi: true
+  - field: recent_loss_or_stressor
+    type: boolean
+  - field: prior_self_harm
+    type: boolean
+  - field: existing_mental_health_diagnosis
+    type: boolean
+  - field: currently_under_treatment
+    type: boolean
+  - field: medication_adherence
+    type: enum
+    values: [taking_as_prescribed, missing_doses, stopped, unknown]
+  - field: appetite_change
+    type: enum
+    values: [none, reduced, increased, unknown]

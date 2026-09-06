@@ -1,0 +1,54 @@
+# Field registry for the general complaint family.
+# The fallback when a presentation does not fit a specific family. Its required
+# fields are the minimum any presentation needs before triage can run, plus the
+# generic danger signs that apply regardless of complaint.
+family: general
+
+required:
+  - field: presenting_complaint_text
+    type: text
+    description: The complaint in the patient's own words, unmapped.
+  - field: onset_duration_hours
+    type: number
+    unit: hours
+  - field: severity_nrs
+    type: number
+    unit: score_0_10
+  - field: getting_worse
+    type: boolean
+  - field: fever_reported
+    type: boolean
+  - field: altered_consciousness
+    type: boolean
+  - field: breathing_difficulty
+    type: boolean
+  - field: oral_intake
+    type: enum
+    values: [normal, reduced, minimal, none, unknown]
+  - field: functioning_affected
+    type: enum
+    values: [none, mild, moderate, unable_to_function, unknown]
+
+optional:
+  - field: site
+    type: text
+  - field: associated_symptoms_text
+    type: text
+  - field: weight_loss_unintentional
+    type: boolean
+  - field: night_sweats
+    type: boolean
+  - field: lump_or_swelling
+    type: boolean
+  - field: rash
+    type: boolean
+  - field: urine_output
+    type: enum
+    values: [normal, reduced, none, unknown]
+  - field: prior_similar_episode
+    type: boolean
+  - field: already_seen_a_doctor
+    type: boolean
+    description: >-
+      Common in India, where patients self-refer and may have consulted several
+      clinicians for the same problem without any of them seeing the others' notes.

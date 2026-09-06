@@ -1,0 +1,57 @@
+# Field registry for the headache complaint family.
+# Time-to-peak is required because it is the field a thunderclap presentation
+# turns on; the criterion itself lives in rules/red_flags/, not here.
+family: headache
+
+required:
+  - field: onset_duration_hours
+    type: number
+    unit: hours
+  - field: time_to_peak_minutes
+    type: number
+    unit: minutes
+    description: Minutes from first noticing the pain to its worst intensity.
+  - field: severity_nrs
+    type: number
+    unit: score_0_10
+  - field: worst_ever
+    type: boolean
+    description: Whether the patient describes this as the worst headache of their life.
+  - field: site
+    type: enum
+    values: [frontal, temporal, occipital, unilateral, generalised, periorbital, unknown]
+    multi: true
+  - field: neck_stiffness
+    type: boolean
+  - field: fever_reported
+    type: boolean
+  - field: visual_disturbance
+    type: enum
+    values: [none, blurring, double_vision, loss_of_vision, halos, aura, unknown]
+    multi: true
+  - field: focal_weakness
+    type: boolean
+  - field: altered_consciousness
+    type: boolean
+
+optional:
+  - field: photophobia
+    type: boolean
+  - field: vomiting
+    type: boolean
+  - field: worse_on_lying_flat
+    type: boolean
+  - field: worse_on_straining
+    type: boolean
+  - field: head_injury_recent
+    type: boolean
+  - field: prior_similar_episode
+    type: boolean
+  - field: known_headache_pattern
+    type: boolean
+  - field: anticoagulant_use
+    type: boolean
+  - field: scalp_tenderness
+    type: boolean
+  - field: jaw_claudication
+    type: boolean

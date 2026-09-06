@@ -1,0 +1,57 @@
+# Field registry for the neurological deficit complaint family.
+# last_known_well_hours is required because reperfusion eligibility is timed
+# from it, not from symptom discovery. The window itself is a rule, not a field.
+family: neurological_deficit
+
+required:
+  - field: last_known_well_hours
+    type: number
+    unit: hours
+    description: >-
+      Hours since the patient was last seen without the deficit. For a deficit
+      noticed on waking this is time of going to sleep, not time of waking.
+  - field: onset_speed
+    type: enum
+    values: [sudden, gradual, unknown]
+  - field: face_asymmetry
+    type: boolean
+  - field: arm_weakness
+    type: enum
+    values: [none, left, right, both, unknown]
+  - field: leg_weakness
+    type: enum
+    values: [none, left, right, both, unknown]
+  - field: speech_disturbance
+    type: enum
+    values: [none, slurred, word_finding_difficulty, unable_to_speak, unknown]
+  - field: visual_loss
+    type: enum
+    values: [none, one_eye, one_side_both_eyes, double_vision, unknown]
+  - field: altered_consciousness
+    type: boolean
+  - field: seizure_activity
+    type: boolean
+  - field: symptoms_resolved
+    type: boolean
+    description: Whether the deficit has fully resolved by the time of the consultation.
+
+optional:
+  - field: sensory_loss
+    type: enum
+    values: [none, left, right, both, unknown]
+  - field: gait_disturbance
+    type: boolean
+  - field: headache
+    type: boolean
+  - field: vomiting
+    type: boolean
+  - field: head_injury_recent
+    type: boolean
+  - field: anticoagulant_use
+    type: boolean
+  - field: known_atrial_fibrillation
+    type: boolean
+  - field: prior_stroke
+    type: boolean
+  - field: neck_pain
+    type: boolean

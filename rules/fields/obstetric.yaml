@@ -1,0 +1,53 @@
+# Field registry for the obstetric complaint family.
+# Covers pregnancy-related presentations at any gestation.
+family: obstetric
+
+required:
+  - field: gestation_weeks
+    type: number
+    unit: weeks
+  - field: last_menstrual_period_weeks_ago
+    type: number
+    unit: weeks
+  - field: pregnancy_confirmed
+    type: boolean
+    description: Whether pregnancy is confirmed by test or scan rather than suspected.
+  - field: vaginal_bleeding
+    type: enum
+    values: [none, spotting, moderate, heavy, unknown]
+  - field: abdominal_pain
+    type: boolean
+  - field: fluid_leaking
+    type: boolean
+  - field: fetal_movements
+    type: enum
+    values: [normal, reduced, absent, not_yet_felt, unknown]
+  - field: headache
+    type: boolean
+  - field: visual_disturbance
+    type: boolean
+  - field: contractions
+    type: boolean
+
+optional:
+  - field: shoulder_tip_pain
+    type: boolean
+  - field: dizziness_or_fainting
+    type: boolean
+  - field: swelling_face_or_hands
+    type: boolean
+  - field: epigastric_pain
+    type: boolean
+  - field: fever_reported
+    type: boolean
+  - field: previous_pregnancies
+    type: number
+    unit: count
+  - field: previous_caesarean
+    type: boolean
+  - field: multiple_pregnancy_known
+    type: boolean
+  - field: antenatal_care_received
+    type: boolean
+  - field: known_hypertension_in_pregnancy
+    type: boolean

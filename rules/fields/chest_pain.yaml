@@ -1,0 +1,92 @@
+# Field registry for the chest pain complaint family.
+# Field selection follows the OPQRST pain history framework named in
+# docs/PRD.md section 4.3.3. Field VALUES here are descriptive vocabulary, not
+# clinical thresholds; no diagnostic criterion is encoded in this file.
+family: chest_pain
+
+required:
+  - field: onset_duration_hours
+    type: number
+    unit: hours
+    description: Hours since the pain began. Time of onset gates the reperfusion window.
+
+  - field: onset_speed
+    type: enum
+    values: [sudden, gradual, unknown]
+    description: Whether the pain arrived abruptly or built up.
+
+  - field: radiation
+    type: enum
+    values: [none, jaw, left_arm, right_arm, back, epigastrium, neck, shoulder]
+    multi: true
+    description: Where the pain travels to, if anywhere.
+
+  - field: exertional_relation
+    type: enum
+    values: [worse_on_exertion, unrelated, worse_at_rest, unknown]
+    description: How exertion changes the pain.
+
+  - field: diaphoresis
+    type: boolean
+    description: Sweating alongside the pain.
+
+  - field: character
+    type: enum
+    values: [pressure, tightness, burning, sharp, dull, tearing, unknown]
+    description: >-
+      How the pain feels. Colloquial reports such as "gas" or "acidity" are
+      probed rather than mapped straight to burning.
+
+  - field: severity_nrs
+    type: number
+    unit: score_0_10
+    description: Patient-reported intensity on a 0-10 numeric rating scale.
+
+  - field: dyspnoea
+    type: boolean
+    description: Breathlessness accompanying the pain.
+
+optional:
+  - field: relation_to_food
+    type: enum
+    values: [worse_after, better_after, unrelated, unknown]
+
+  - field: relation_to_posture
+    type: enum
+    values: [worse_lying_flat, worse_leaning_forward, unrelated, unknown]
+
+  - field: relation_to_breathing
+    type: enum
+    values: [worse_on_inspiration, unrelated, unknown]
+
+  - field: nausea
+    type: boolean
+
+  - field: vomiting
+    type: boolean
+
+  - field: palpitations
+    type: boolean
+
+  - field: syncope
+    type: boolean
+
+  - field: cough
+    type: boolean
+
+  - field: haemoptysis
+    type: boolean
+
+  - field: leg_swelling
+    type: enum
+    values: [none, unilateral, bilateral, unknown]
+
+  - field: recent_immobility
+    type: boolean
+
+  - field: prior_similar_episode
+    type: boolean
+
+  - field: smoking_status
+    type: enum
+    values: [never, former, current, unknown]

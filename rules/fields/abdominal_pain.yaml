@@ -1,0 +1,70 @@
+# Field registry for the abdominal pain complaint family.
+# Follows SOCRATES pain history structure (docs/PRD.md section 4.3.3).
+# Descriptive vocabulary only; no diagnostic criterion is encoded here.
+family: abdominal_pain
+
+required:
+  - field: onset_duration_hours
+    type: number
+    unit: hours
+  - field: onset_speed
+    type: enum
+    values: [sudden, gradual, unknown]
+  - field: site
+    type: enum
+    values: [epigastric, right_upper_quadrant, left_upper_quadrant, periumbilical,
+             right_lower_quadrant, left_lower_quadrant, suprapubic, loin, generalised, unknown]
+    multi: true
+  - field: radiation
+    type: enum
+    values: [none, back, shoulder_tip, groin, chest, unknown]
+    multi: true
+  - field: character
+    type: enum
+    values: [colicky, constant, cramping, burning, tearing, unknown]
+  - field: severity_nrs
+    type: number
+    unit: score_0_10
+  - field: vomiting
+    type: boolean
+  - field: bowels_open
+    type: enum
+    values: [normal, constipated, diarrhoea, absent, unknown]
+    description: Includes absolute constipation, meaning neither stool nor flatus passed.
+  - field: fever_reported
+    type: boolean
+  - field: abdominal_tenderness_reported
+    type: boolean
+    description: Patient-reported pain on pressing. Not an examination finding.
+
+optional:
+  - field: relation_to_food
+    type: enum
+    values: [worse_after, better_after, unrelated, unknown]
+  - field: relation_to_movement
+    type: enum
+    values: [worse_on_movement, unrelated, unknown]
+  - field: urinary_symptoms
+    type: enum
+    values: [none, dysuria, frequency, haematuria, retention, unknown]
+    multi: true
+  - field: last_menstrual_period_weeks_ago
+    type: number
+    unit: weeks
+  - field: vaginal_bleeding
+    type: boolean
+  - field: blood_in_stool
+    type: boolean
+  - field: black_stool
+    type: boolean
+  - field: haematemesis
+    type: boolean
+  - field: jaundice_reported
+    type: boolean
+  - field: abdominal_distension
+    type: boolean
+  - field: prior_abdominal_surgery
+    type: boolean
+  - field: alcohol_use
+    type: enum
+    values: [never, occasional, regular, unknown]

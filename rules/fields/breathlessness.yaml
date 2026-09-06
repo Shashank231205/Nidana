@@ -1,0 +1,54 @@
+# Field registry for the breathlessness complaint family.
+family: breathlessness
+
+required:
+  - field: onset_duration_hours
+    type: number
+    unit: hours
+  - field: onset_speed
+    type: enum
+    values: [sudden, gradual, unknown]
+  - field: severity_at_rest
+    type: boolean
+    description: Whether breathlessness is present at rest rather than only on exertion.
+  - field: exertional_tolerance
+    type: enum
+    values: [unchanged, reduced, breathless_at_rest, unable_to_speak_sentences, unknown]
+  - field: chest_pain
+    type: boolean
+  - field: wheeze
+    type: boolean
+  - field: cough
+    type: boolean
+  - field: fever_reported
+    type: boolean
+  - field: leg_swelling
+    type: enum
+    values: [none, unilateral, bilateral, unknown]
+
+optional:
+  - field: orthopnoea
+    type: boolean
+  - field: paroxysmal_nocturnal_dyspnoea
+    type: boolean
+  - field: sputum
+    type: enum
+    values: [none, clear, purulent, blood_stained, unknown]
+  - field: haemoptysis
+    type: boolean
+  - field: recent_immobility
+    type: boolean
+  - field: known_asthma
+    type: boolean
+  - field: known_copd
+    type: boolean
+  - field: inhaler_use_increased
+    type: boolean
+  - field: allergen_exposure
+    type: boolean
+  - field: lip_or_tongue_swelling
+    type: boolean
+  - field: rash
+    type: boolean
+  - field: stridor
+    type: boolean

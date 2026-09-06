@@ -1,0 +1,58 @@
+# Field registry for the fever complaint family.
+# Fever in India carries a differential that includes vector-borne and enteric
+# illness, so exposure and travel fields are required rather than optional.
+family: fever
+
+required:
+  - field: onset_duration_hours
+    type: number
+    unit: hours
+  - field: measured_temperature_celsius
+    type: number
+    unit: celsius
+    description: Recorded temperature where the patient has measured it.
+  - field: temperature_measured
+    type: boolean
+    description: Distinguishes a measured reading from a subjective report of feeling hot.
+  - field: rigors
+    type: boolean
+  - field: fever_pattern
+    type: enum
+    values: [continuous, intermittent, alternate_day, unknown]
+  - field: rash
+    type: boolean
+  - field: focal_symptoms
+    type: enum
+    values: [none, urinary, respiratory, gastrointestinal, ear_throat, skin, joint,
+             neurological, unknown]
+    multi: true
+  - field: neck_stiffness
+    type: boolean
+  - field: altered_consciousness
+    type: boolean
+  - field: oral_intake
+    type: enum
+    values: [normal, reduced, minimal, none, unknown]
+  - field: urine_output
+    type: enum
+    values: [normal, reduced, none, unknown]
+
+optional:
+  - field: travel_last_month
+    type: boolean
+  - field: known_local_outbreak_exposure
+    type: boolean
+  - field: mosquito_exposure
+    type: boolean
+  - field: sick_contacts
+    type: boolean
+  - field: bleeding_from_any_site
+    type: boolean
+  - field: joint_pain
+    type: boolean
+  - field: headache
+    type: boolean
+  - field: recent_antibiotic_use
+    type: boolean
+  - field: immunosuppression_known
+    type: boolean
