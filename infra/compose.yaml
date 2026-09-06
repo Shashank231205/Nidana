@@ -1,0 +1,66 @@
+# Development stack. One command up, as ENGINEERING_RULES section 6 requires.
+#
+# Model weights mount as a volume and are never baked into an image. Ollama runs
+# as its own service so the application container carries no model runtime.
+
+name: nidana
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${NIDANA_DB_NAME:-nidana}
+      POSTGRES_USER: ${NIDANA_DB_MIGRATOR_USER:-nidana_migrator}
+      POSTGRES_PASSWORD: ${NIDANA_DB_MIGRATOR_PASSWORD:?set it in .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./migrations/roles.sql:/docker-entrypoint-initdb.d/10-roles.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NIDANA_DB_MIGRATOR_USER:-nidana_migrator}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ../models/ollama:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  consult:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+    environment:
+      NIDANA_MODE: ${NIDANA_MODE:-development}
+      NIDANA_INFERENCE_TRANSPORT: local
+      NIDANA_OLLAMA_HOST: http://ollama:11434
+      NIDANA_MODEL_PRIMARY: ${NIDANA_MODEL_PRIMARY:?name the model to use}
+      NIDANA_MODEL_FALLBACKS: ${NIDANA_MODEL_FALLBACKS:-}
+      NIDANA_DB_HOST: db
+      NIDANA_DB_NAME: ${NIDANA_DB_NAME:-nidana}
+      NIDANA_DB_USER: ${NIDANA_DB_USER:-nidana_app}
+      NIDANA_DB_PASSWORD: ${NIDANA_DB_PASSWORD:?set it in .env}
+      NIDANA_ALLOW_UNVERIFIED_RULES: ${NIDANA_ALLOW_UNVERIFIED_RULES:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+volumes:
+  db_data:
