@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nidana"
+version = "0.1.0"
+description = "On-premise clinical intelligence platform for Indian healthcare"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.6,<3",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.9",
+    "ruff>=0.3",
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "types-PyYAML",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["packages*", "services*"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unreachable = true
+disallow_any_explicit = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_any_explicit = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "PT", "RET", "SIM", "ARG", "PL", "RUF"]
+ignore = ["PLR0913"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[tool.coverage.run]
+branch = true
+source = ["services/clinical", "packages/schemas"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]
