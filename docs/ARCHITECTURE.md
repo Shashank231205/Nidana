@@ -1,83 +1,104 @@
 # Nidana — Repository Map
 
-Where each thing lives and why. The layout is fixed by
-`docs/ENGINEERING_RULES.md` §1; this file explains how to navigate it.
+Where each thing lives and why.
 
 ## The one-sentence version
 
-Deterministic clinical logic and generative agents are separate packages that
-never import each other, and every clinical shape they exchange is defined once
-in `packages/schemas/`.
+One shared spine, five self-contained services that use it and never import each
+other, and deterministic clinical logic kept in separate packages from anything
+generative.
 
-## Directories
+## Top level
 
 ```
 nidana/
-├── packages/          shapes and mappings — no behaviour
-│   ├── schemas/       every clinical data shape, single source of truth
-│   └── fhir/          FHIR R4 mapping, nothing but mapping
+├── spine/                shared by all five services — built once
+│   ├── schemas/          every clinical shape: record, finding, provenance, band
+│   ├── rules/            the rule engine, predicate evaluation, loaders
+│   ├── terminology/      SNOMED CT and ICD-10 lookup
+│   ├── audit/            append-only, hash-chained
+│   ├── inference/        the one adapter every model call goes through
+│   ├── identity/         patient resolution across services
+│   ├── persistence/      repositories
+│   └── fhir/             FHIR R4 mapping
 │
-├── services/          behaviour, one job per package
-│   ├── clinical/      red flags, bands, routing, sufficiency — NO MODELS
-│   ├── agents/        intake, structuring, triage, critic + one adapter
-│   ├── terminology/   SNOMED / ICD-10 lookup, deterministic index
-│   ├── asr/           transcription, local only
-│   ├── persistence/   repositories — no business logic
-│   └── api/           FastAPI, HTTP boundary only, delegates everything
+├── services/             one folder per service, each self-contained
+│   ├── consult/          S1 · triage and routing        · in build
+│   ├── scribe/           S2 · consultation documentation · planned
+│   ├── rx/               S3 · prescription intelligence  · planned
+│   ├── labs/             S4 · report interpretation      · planned
+│   └── forensics/        S5 · medico-legal, isolated     · planned
 │
-├── rules/             clinical content, declarative, cited, versioned
-│   ├── fields/        required + optional fields per complaint family
-│   ├── predicates/    named tests over registry fields
-│   ├── red_flags/     rules that can terminate a session
-│   └── routing/       specialty and capability mapping
+├── web/
+│   ├── patient/          voice-first, one question at a time
+│   └── clinician/        dense, scannable in fifteen seconds
 │
-├── prompts/           agent prompts as files, loaded at runtime
-├── eval/              vignettes, harness, dated reports
-├── web/               patient and clinician surfaces
-├── infra/             docker, compose, migrations
-├── tests/             mirrors the services/ and packages/ tree
-├── scripts/           operational entry points
-└── docs/              PRD, build spec, engineering rules, ADRs
+├── infra/                docker, compose, migrations
+├── tests/                mirrors spine/ and services/
+├── scripts/              operational entry points
+└── docs/                 PRD, build spec, engineering rules, ADRs
 ```
 
-## The boundaries that matter
+## Inside a service
 
-**`services/clinical/` imports no inference client.** Red flags, urgency
-thresholds, routing, and interaction checks are deterministic code. Anything
-where being wrong causes physical harm is a rule, not a generation.
+Every service has the same seven folders, so knowing one means knowing all five.
 
-**`services/agents/` holds no clinical threshold.** Agents handle language.
-They elicit and structure; they never decide.
+```
+services/<name>/
+├── clinical/     deterministic checks     · never a model call
+├── agents/       its agents               · never a clinical threshold
+├── prompts/      *.md, loaded at runtime  · never a string literal
+├── rules/        declarative, cited YAML  · never logic
+├── api/          HTTP routes              · never clinical reasoning
+├── eval/         vignettes, harness, reports
+└── README.md     what it is, what is built, what is not
+```
 
-**Every clinical shape is defined in `packages/schemas/`.** Agents, API,
-persistence, and FHIR mapping import from it. There are no parallel
-definitions inside a service.
+Consult additionally has `asr/`, because voice is its input path.
 
-**Rules are data, not code.** A clinical constant lives in `rules/`, carries
-its source citation, and is loaded and validated at startup. It is never
-hard-coded in application logic.
+## The boundaries
 
-**Prompts are files.** `prompts/*.md`, versioned in git, loaded at runtime,
-never a string literal.
+**Nothing in `spine/` imports from a service.** The spine is the foundation; it
+does not know who stands on it.
+
+**No service imports another service.** Shared behaviour goes in the spine or it
+is duplicated deliberately.
+
+**`services/*/clinical/` imports no inference client.** Anything where being
+wrong causes physical harm is a rule, not a generation.
+
+**`services/*/agents/` holds no clinical threshold.** Agents handle language.
+They elicit, transcribe, extract, and phrase; they never decide.
+
+**Every clinical shape is defined in `spine/schemas/`.** No parallel definitions.
+
+**The spine holds the engine, the service holds the rules.** Rule content lives
+at `services/<name>/rules/` because Consult's red flags are not Rx's interaction
+checks.
+
+**Forensics reads nothing.** It uses the spine's shapes and writes its own chain.
+It does not read the shared record, by design.
 
 ## Reading order for someone new
 
-1. `docs/PRD.md` §3 — the scope boundary. Nidana triages; it does not diagnose.
-2. `docs/BUILD_SPEC.md` §2 — the core schemas.
+1. `NIDANA.md` — the whole product, five services, in order.
+2. `NIDANA.md` §4 — the regulatory boundary. Nidana triages; it does not diagnose.
 3. `docs/adr/` — seven decisions where the spec, taken literally, could not be
-   implemented safely. Read 0002 and 0004 first; they carry the two strongest
-   safety invariants.
-4. `packages/schemas/` — the shapes themselves.
-5. `services/clinical/` — what the system decides without a model.
+   implemented safely. Read 0002 and 0004 first.
+4. `spine/README.md` — the three things that matter most.
+5. `spine/schemas/` — the shapes themselves.
+6. `services/consult/README.md` — the first service, end to end.
 
 ## Where to add something
 
 | Adding | Goes in |
 |---|---|
-| A clinical data shape | `packages/schemas/` |
-| A red flag rule | `rules/red_flags/`, with a citation |
-| A new complaint family | `rules/fields/<family>.yaml` + a registry enum member |
-| A rule atom | `rules/predicates/`, then reference it |
-| An agent | `prompts/<name>.md` + `services/agents/<name>.py` |
-| An endpoint | `services/api/`, delegating to a service |
+| A clinical data shape | `spine/schemas/` |
+| A rule-engine capability | `spine/rules/` |
+| A red flag rule | `services/consult/rules/red_flags/`, with a citation |
+| An interaction check | `services/rx/rules/` |
+| A new complaint family | `services/consult/rules/fields/<family>.yaml` + an enum member |
+| A rule atom | `services/<name>/rules/predicates/`, then reference it |
+| An agent | `services/<name>/prompts/<agent>.md` + `services/<name>/agents/<agent>.py` |
+| An endpoint | `services/<name>/api/`, delegating to that service |
 | A migration | `infra/migrations/`, forward-only |

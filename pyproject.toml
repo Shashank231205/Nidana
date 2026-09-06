@@ -23,7 +23,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["packages*", "services*"]
+include = ["spine*", "services*"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -61,7 +61,7 @@ addopts = "-q --strict-markers"
 
 [tool.coverage.run]
 branch = true
-source = ["services/clinical", "packages/schemas"]
+source = ["spine", "services"]
 
 [tool.coverage.report]
 exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]
