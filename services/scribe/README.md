@@ -4,8 +4,8 @@ Ambient consultation documentation
 
 **Status:** not started. Phase P2.
 
-Specified in `NIDANA.md`. Nothing here is built yet; the folders exist so the
-structure is visible and the boundaries are fixed before code lands in them.
+Nothing here is built yet. The folders exist so the structure is visible and
+the boundaries are fixed before code lands in them.
 
 ## Layout
 

@@ -34,4 +34,4 @@ examiner input or it does not render.
 
 Statutory mapping needs a lawyer, not only a clinician. Section numbering moved
 from IPC to BNS in 2024 and must be verified directly against the current
-statute. See `NIDANA.md` Part X.
+statute.

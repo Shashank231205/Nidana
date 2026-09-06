@@ -81,8 +81,8 @@ It does not read the shared record, by design.
 
 ## Reading order for someone new
 
-1. `NIDANA.md` — the whole product, five services, in order.
-2. `NIDANA.md` §4 — the regulatory boundary. Nidana triages; it does not diagnose.
+1. `docs/PRD.md` — the product and the scope boundary.
+2. `docs/BUILD_SPEC.md` — the data model and the milestone gates.
 3. `docs/adr/` — seven decisions where the spec, taken literally, could not be
    implemented safely. Read 0002 and 0004 first.
 4. `spine/README.md` — the three things that matter most.
