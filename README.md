@@ -13,11 +13,11 @@ them. It runs on the clinic's own hardware. Nothing leaves the premises.
 
 | | Service | Primary user | Produces | Status |
 |---|---|---|---|---|
-| S1 | [Consult](services/consult/) | Patient, then clinician | Triage band, routing, structured history | in build |
-| S2 | [Scribe](services/scribe/) | Clinician | SOAP note, examination, assessment, plan | planned |
-| S3 | [Rx](services/rx/) | Patient, pharmacist | Resolved medicines, interaction checks | planned |
-| S4 | [Labs](services/labs/) | Patient, clinician | Parsed results, trends, critical flags | planned |
-| S5 | [Forensics](services/forensics/) | Casualty medical officer | Medico-legal report, tamper-evident | planned |
+| S1 | [Consult](services/consult/) | Patient, then clinician | Triage band, routing, structured history | runs end to end |
+| S2 | [Scribe](services/scribe/) | Clinician | SOAP note, examination, assessment, plan | safety layer built |
+| S3 | [Rx](services/rx/) | Patient, pharmacist | Resolved medicines, duplicate therapy checks | safety layer built |
+| S4 | [Labs](services/labs/) | Patient, clinician | Parsed results, trends, critical flags | safety layer built |
+| S5 | [Forensics](services/forensics/) | Casualty medical officer | Medico-legal report, tamper-evident | safety layer built |
 
 ## The boundary
 
@@ -71,20 +71,37 @@ its input, and a test enumerates all 25 ordered pairs.
 Phase P0, the spine, is largely complete. Phase P1, Consult, runs end to end
 against a local model.
 
-**Built.** The record, finding, and five-variant provenance shapes. The rule
-engine with predicate resolution. Thirty-one red flag rules across ten
-complaint families, with routing and facility capability matching. Band
-escalation, the patient output filter, and the sufficiency check. The
-append-only hash-chained audit log. The inference adapter with its
-production-mode assertion. All four agents with their prompts. The session
-orchestrator and HTTP surface. The evaluation harness. Persistence and the
-initial migration.
+The spine is built. Consult runs end to end. Each of the other four services
+has its shapes and its deterministic safety layer, which is the part that must
+be right before anything generative is written on top of it.
+
+**Spine.** Record, finding, and the five-variant provenance union. The rule
+engine with predicate resolution. Band escalation. The append-only
+hash-chained audit log. The inference adapter with its production-mode
+assertion. Prompt loading. Persistence and the initial migration.
+
+**S1 Consult.** Thirty-one red flag rules across ten complaint families,
+routing with facility capability matching, the patient output filter, all four
+agents and their prompts, the session orchestrator, the HTTP surface, and the
+evaluation harness.
+
+**S2 Scribe.** The note shapes, the groundedness gate with audio offsets for
+click-to-hear, note completeness checking, and the note agent prompt.
+
+**S3 Rx.** Medication shapes with refusal as a first-class outcome, duplicate
+therapy detection, allergy checking, and unresolved-line handling.
+
+**S4 Labs.** Result and reference range shapes, trends, and critical value
+detection with the same 100% sensitivity gate as red flags.
+
+**S5 Forensics.** Examination records, the finalisation gate, and the custody
+chain that logs reads as well as writes.
 
 **Not built.** Terminology lookup, FHIR mapping, identity resolution, ASR,
-both frontends, and services S2 through S5.
+both frontends, and the agent runtimes for S2 through S5.
 
-**Blocked, not unbuilt.** Thirty of thirty-one clinical criteria are
-unverified, and the vignette set is empty. Both need a clinician, not an
+**Blocked, not unbuilt.** Every clinical threshold in the repository is
+unverified and the vignette set is empty. Both need a clinician, not an
 engineer. See below.
 
 ## Development
@@ -92,7 +109,7 @@ engineer. See below.
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"
 
-pytest tests/ -q                     # 482 tests
+pytest tests/ -q                     # 635 tests
 mypy spine services tests            # strict
 ruff check spine services tests
 python scripts/verify_rules.py       # every rule atom resolves and can fire
