@@ -1,0 +1,95 @@
+# Critical value thresholds.
+#
+# EVERY THRESHOLD IN THIS FILE IS UNVERIFIED AND EVERY NUMBER IS A PLACEHOLDER.
+#
+# A critical value means contact someone now. The release gate for this check is
+# 100% sensitivity, which makes a wrong threshold here more dangerous than a
+# missing one: a threshold set too wide reports 100% sensitivity on a vignette
+# set that never tests the gap.
+#
+# These entries name the analytes a critical value panel should cover and fix
+# the shape. The numbers are structural placeholders and must be replaced by a
+# clinician working from the laboratory's own assay and the current published
+# source, then marked verified with the date and the reviewer.
+#
+# A release build refuses to start while verify_before_ship is true.
+thresholds:
+  - analyte: potassium
+    unit: mmol/L
+    critical_low: 0.0
+    critical_high: 99.0
+    source: >-
+      PLACEHOLDER. Numbers are structural, not clinical. Potassium is on every
+      critical value panel because both extremes are immediately arrhythmogenic;
+      the actual bounds must come from a clinician.
+    verify_before_ship: true
+
+  - analyte: glucose
+    unit: mg/dL
+    critical_low: 0.0
+    critical_high: 9999.0
+    source: >-
+      PLACEHOLDER. Both extremes matter and the low bound is the more urgent.
+      Bounds pending clinician review.
+    verify_before_ship: true
+
+  - analyte: sodium
+    unit: mmol/L
+    critical_low: 0.0
+    critical_high: 999.0
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - analyte: haemoglobin
+    unit: g/dL
+    critical_low: 0.0
+    source: >-
+      PLACEHOLDER. Critical only when low. Declaring a high bound where none
+      applies would invent a threshold.
+    verify_before_ship: true
+
+  - analyte: platelet count
+    unit: 10^9/L
+    critical_low: 0.0
+    critical_high: 99999.0
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - analyte: inr
+    unit: ratio
+    critical_high: 999.0
+    source: >-
+      PLACEHOLDER. Critical only when high, and the threshold differs for a
+      patient on anticoagulation. Whether that distinction belongs here or in
+      the interpretation layer is a clinical decision.
+    verify_before_ship: true
+
+  - analyte: creatinine
+    unit: mg/dL
+    critical_high: 999.0
+    source: >-
+      PLACEHOLDER. A single creatinine matters less than its trend, which is why
+      Labs holds the history. Threshold pending clinician review.
+    verify_before_ship: true
+
+  - analyte: calcium
+    unit: mg/dL
+    critical_low: 0.0
+    critical_high: 999.0
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - analyte: white cell count
+    unit: 10^9/L
+    critical_low: 0.0
+    critical_high: 9999.0
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - analyte: troponin i
+    unit: ng/mL
+    critical_high: 9999.0
+    source: >-
+      PLACEHOLDER. Assay-dependent to an unusual degree; the laboratory's own
+      cut-off is authoritative and a generic threshold here may be meaningless.
+    verify_before_ship: true
