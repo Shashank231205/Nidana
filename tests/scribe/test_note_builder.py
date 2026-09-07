@@ -13,13 +13,6 @@ from uuid import uuid4
 import pytest
 
 from services.scribe.agents.note_builder import build
-from services.scribe.agents.schemas import (
-    DraftStatement,
-    NoteDraft,
-    Speaker,
-    Transcript,
-    TranscriptSegment,
-)
 from spine.schemas.note import (
     ClinicalNote,
     NoteSection,
@@ -28,6 +21,13 @@ from spine.schemas.note import (
     Statement,
 )
 from spine.schemas.provenance import ExaminerEntry, TranscriptSpan, locate_transcript
+from spine.schemas.transcript import (
+    DraftStatement,
+    NoteDraft,
+    Speaker,
+    Transcript,
+    TranscriptSegment,
+)
 
 CONSULTATION = Transcript(
     segments=(

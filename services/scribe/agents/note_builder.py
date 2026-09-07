@@ -13,13 +13,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from services.scribe.agents.schemas import DraftStatement, NoteDraft, Transcript
 from spine.schemas.note import Statement
 from spine.schemas.provenance import (
     SpanVerificationError,
     TranscriptSpan,
     locate_transcript,
 )
+from spine.schemas.transcript import DraftStatement, NoteDraft, Transcript
 
 
 @dataclass(frozen=True)

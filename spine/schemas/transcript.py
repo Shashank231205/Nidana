@@ -1,7 +1,13 @@
-"""What Scribe's agents return.
+"""Transcribed speech.
 
-Claims, not facts. A statement becomes part of a note only after its span
-verifies against the transcript, the same gate Consult applies to findings.
+In the spine rather than in Scribe because both services consume transcripts:
+Consult transcribes one speaker, Scribe transcribes several. A shape defined in
+one service and imported by the other would breach the boundary that says no
+service imports another.
+
+DraftStatement and NoteDraft are here for the same reason the note shapes are:
+they are what an agent claims, and the claim becomes a fact only after its span
+verifies against the transcript.
 """
 
 from __future__ import annotations
@@ -11,6 +17,14 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from spine.schemas.note import NoteSection
+
+LOW_CONFIDENCE_FLOOR = 0.6
+"""Below this, a transcribed segment is marked for confirmation.
+
+Not a clinical threshold. It decides whether a segment is flagged to the reader
+as uncertain, and it lives on the transcript shape rather than in one service's
+ASR module because both Consult and Scribe consume transcripts.
+"""
 
 
 class Speaker(str, Enum):
@@ -52,6 +66,10 @@ class TranscriptSegment(BaseModel):
     @property
     def duration_ms(self) -> int:
         return self.audio_end_ms - self.audio_start_ms
+
+    @property
+    def is_low_confidence(self) -> bool:
+        return self.confidence < LOW_CONFIDENCE_FLOOR
 
 
 class Transcript(BaseModel):

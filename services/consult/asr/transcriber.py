@@ -21,7 +21,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
-from services.scribe.agents.schemas import Speaker, Transcript, TranscriptSegment
+from spine.schemas.transcript import (
+    Speaker,
+    Transcript,
+    TranscriptSegment,
+)
 
 DEFAULT_MODEL_PATH: Final[Path] = Path("./models/asr/indicwhisper")
 
@@ -35,12 +39,8 @@ tagged `hi` routinely contains English clinical vocabulary, and nothing
 downstream should treat the tag as a guarantee.
 """
 
-LOW_CONFIDENCE_FLOOR: Final[float] = 0.6
-"""Below this, a segment is marked for confirmation rather than trusted.
-
-Not a clinical threshold. It decides whether the intake agent re-asks, and a
-re-asked question costs one turn while a misheard drug name costs more.
-"""
+# LOW_CONFIDENCE_FLOOR lives on the transcript shape rather than here: both
+# Consult and Scribe consume transcripts, and two floors would drift apart.
 
 
 class TranscriptionError(RuntimeError):
@@ -84,9 +84,7 @@ class TranscriptionResult:
     @property
     def low_confidence_segments(self) -> tuple[TranscriptSegment, ...]:
         return tuple(
-            segment
-            for segment in self.transcript.segments
-            if segment.confidence < LOW_CONFIDENCE_FLOOR
+            segment for segment in self.transcript.segments if segment.is_low_confidence
         )
 
     @property
