@@ -8,8 +8,6 @@ Skipped where FastAPI is not installed, since it is an optional extra.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import pytest
 
 fastapi = pytest.importorskip("fastapi", reason="API extra not installed")
@@ -35,9 +33,6 @@ from spine.rules.rule_loader import (  # noqa: E402
     load_rule_sets,
     rules_dir,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator
 
 STRUCTURED_CHEST_PAIN = (
     '{"findings":[{"field":"radiation","value":"jaw",'
@@ -86,14 +81,25 @@ def dependencies_with(provider: InferenceProvider) -> Dependencies:
     )
 
 
-@pytest.fixture
-def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    """A client whose model is scripted and whose clinical layer is real."""
-    provider = ScriptedProvider(NEXT_QUESTION)
+def client_with(
+    monkeypatch: pytest.MonkeyPatch, provider: InferenceProvider
+) -> TestClient:
+    """A client with dependencies injected and the startup hook bypassed.
+
+    The hook reads NIDANA_MODEL_PRIMARY and reaches for a provider. These tests
+    supply both directly, so running it would only assert that the environment
+    happens to name a model — which is a deployment concern, covered separately
+    in TestStartupChecks.
+    """
     monkeypatch.setattr(api, "_dependencies", dependencies_with(provider))
     monkeypatch.setattr(api, "_sessions", {})
-    with TestClient(api.app) as test_client:
-        yield test_client
+    return TestClient(api.app)
+
+
+@pytest.fixture
+def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """A client whose model is scripted and whose clinical layer is real."""
+    return client_with(monkeypatch, ScriptedProvider(NEXT_QUESTION))
 
 
 class TestHealth:
@@ -157,35 +163,35 @@ class TestRedFlagTermination:
     def test_a_firing_rule_returns_the_emergency_shape(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        provider = ScriptedProvider(NEXT_QUESTION, STRUCTURED_CHEST_PAIN, NEXT_QUESTION)
-        monkeypatch.setattr(api, "_dependencies", dependencies_with(provider))
-        monkeypatch.setattr(api, "_sessions", {})
-        with TestClient(api.app) as client:
-            session_id = client.post("/v1/sessions").json()["session_id"]
-            client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
-            body = client.post(
-                f"/v1/sessions/{session_id}/turns",
-                json={"utterance": "jabde mein ja raha hai"},
-            ).json()
-            assert body["shape"] == "terminal_emergency"
-            assert "RF_ACS_001" in body["emergency"]["rule_ids"]
+        client = client_with(
+            monkeypatch,
+            ScriptedProvider(NEXT_QUESTION, STRUCTURED_CHEST_PAIN, NEXT_QUESTION),
+        )
+        session_id = client.post("/v1/sessions").json()["session_id"]
+        client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
+        body = client.post(
+            f"/v1/sessions/{session_id}/turns",
+            json={"utterance": "jabde mein ja raha hai"},
+        ).json()
+        assert body["shape"] == "terminal_emergency"
+        assert "RF_ACS_001" in body["emergency"]["rule_ids"]
 
     def test_a_terminated_session_refuses_further_turns(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        provider = ScriptedProvider(NEXT_QUESTION, STRUCTURED_CHEST_PAIN, NEXT_QUESTION)
-        monkeypatch.setattr(api, "_dependencies", dependencies_with(provider))
-        monkeypatch.setattr(api, "_sessions", {})
-        with TestClient(api.app) as client:
-            session_id = client.post("/v1/sessions").json()["session_id"]
-            client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
-            client.post(
-                f"/v1/sessions/{session_id}/turns",
-                json={"utterance": "jabde mein ja raha hai"},
-            )
-            response = client.post(
-                f"/v1/sessions/{session_id}/turns", json={"utterance": "anything"}
-            )
+        client = client_with(
+            monkeypatch,
+            ScriptedProvider(NEXT_QUESTION, STRUCTURED_CHEST_PAIN, NEXT_QUESTION),
+        )
+        session_id = client.post("/v1/sessions").json()["session_id"]
+        client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
+        client.post(
+            f"/v1/sessions/{session_id}/turns",
+            json={"utterance": "jabde mein ja raha hai"},
+        )
+        response = client.post(
+            f"/v1/sessions/{session_id}/turns", json={"utterance": "anything"}
+        )
         assert response.status_code == 409
         assert "terminated_emergency" in response.json()["detail"]
 
