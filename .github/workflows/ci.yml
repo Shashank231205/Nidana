@@ -34,6 +34,11 @@ jobs:
       - name: Verify rule integrity
         run: python scripts/verify_rules.py
 
+      # The boundaries erode one convenient import at a time, each individually
+      # reasonable. Checked rather than reviewed.
+      - name: Verify architectural boundaries
+        run: python scripts/verify_boundaries.py
+
       - name: Clinical layer coverage
         run: |
           pytest tests/ -q \
