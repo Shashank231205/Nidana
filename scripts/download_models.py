@@ -78,9 +78,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--llm",
-        default="llama3.1:8b-instruct-q4_K_M",
-        help="Ollama model for intake, structuring, and triage. Quantised by default, "
-        "because the target hardware is a laptop.",
+        default="qwen2.5:7b-instruct-q4_K_M",
+        help="Ollama model for intake, structuring, and triage. Quantised by default "
+        "because the target hardware is a laptop, where VRAM rather than RAM is the "
+        "binding constraint.",
     )
     parser.add_argument(
         "--asr",
