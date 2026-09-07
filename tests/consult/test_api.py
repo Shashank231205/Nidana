@@ -102,14 +102,22 @@ class TestHealth:
         assert body["status"] == "healthy"
         assert body["rules_loaded"] is True
 
-    def test_health_reports_degraded_without_dependencies(
+    def test_health_reports_degraded_before_dependencies_load(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A container that started but cannot triage must fail its healthcheck."""
+        monkeypatch.setattr(api, "_dependencies", None)
+        body = api.health()
+        assert body["status"] == "degraded"
+        assert body["rules_loaded"] is False
+
+    def test_endpoints_refuse_service_before_dependencies_load(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(api, "_dependencies", None)
-        with TestClient(api.app) as bare:
-            bare.app.dependency_overrides = {}
-            body = bare.get("/health").json()
-        assert body["status"] in {"healthy", "degraded"}
+        with pytest.raises(fastapi.HTTPException) as caught:
+            api._deps()
+        assert caught.value.status_code == 503
 
 
 class TestSessionLifecycle:
