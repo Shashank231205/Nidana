@@ -3,7 +3,11 @@
 Conversational triage and routing. The first service, and the one whose
 evaluation harness the other four reuse.
 
-**Status:** in build, phase P1.
+**Status:** runs end to end. Phase P1.
+
+Every component below exists and is tested. What blocks release is clinical
+governance rather than engineering: thirty of thirty-one red flag criteria
+carry `verify_before_ship`, and a release build refuses to start while they do.
 
 ## The job
 

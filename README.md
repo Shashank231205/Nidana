@@ -68,24 +68,41 @@ its input, and a test enumerates all 25 ordered pairs.
 
 ## State of the build
 
-Phase P0, the spine, is in progress.
+Phase P0, the spine, is largely complete. Phase P1, Consult, runs end to end
+against a local model.
 
-Built: the record and finding shapes, the five-variant provenance union, band
-escalation, the field registry for ten complaint families, the predicate
-registry and its load-time resolution.
+**Built.** The record, finding, and five-variant provenance shapes. The rule
+engine with predicate resolution. Thirty-one red flag rules across ten
+complaint families, with routing and facility capability matching. Band
+escalation, the patient output filter, and the sufficiency check. The
+append-only hash-chained audit log. The inference adapter with its
+production-mode assertion. All four agents with their prompts. The session
+orchestrator and HTTP surface. The evaluation harness. Persistence and the
+initial migration.
 
-Not built: red flag rules, routing, terminology, audit chain, persistence,
-migrations, the inference adapter, every agent, both frontends, and services
-S2 through S5.
+**Not built.** Terminology lookup, FHIR mapping, identity resolution, ASR,
+both frontends, and services S2 through S5.
+
+**Blocked, not unbuilt.** Thirty of thirty-one clinical criteria are
+unverified, and the vignette set is empty. Both need a clinician, not an
+engineer. See below.
 
 ## Development
 
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"
 
-pytest tests/ -q                          # 206 tests
-mypy spine services tests                 # strict
+pytest tests/ -q                     # 482 tests
+mypy spine services tests            # strict
 ruff check spine services tests
+python scripts/verify_rules.py       # every rule atom resolves and can fire
+```
+
+To run it against a local model:
+
+```bash
+python scripts/download_models.py    # pulls the LLM and IndicWhisper
+docker compose -f infra/compose.yaml up
 ```
 
 ## Clinical content
