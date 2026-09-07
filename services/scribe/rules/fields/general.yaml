@@ -1,0 +1,55 @@
+# Field registry for note completeness checking.
+#
+# These fields describe the note's own shape, not a patient's symptoms. Scribe
+# reuses Consult's engine and registry loader; what differs is the vocabulary.
+#
+# `general` is the family name because a consultation is not classified by
+# complaint the way a triage session is. The note either carries an element or
+# it does not.
+family: general
+
+required:
+  - field: has_subjective
+    type: boolean
+    description: The note records history from the patient or a family member.
+
+  - field: has_examination
+    type: boolean
+    description: >-
+      The note records an examination finding the clinician voiced. False may
+      mean the examination was silent rather than absent, which is why rules
+      turning on it flag rather than block.
+
+  - field: has_assessment
+    type: boolean
+    description: The clinician stated an impression.
+
+  - field: has_plan
+    type: boolean
+    description: The clinician stated what happens next.
+
+  - field: has_follow_up
+    type: boolean
+    description: A return interval or condition was given.
+
+  - field: has_investigations
+    type: boolean
+    description: Tests were ordered.
+
+  - field: prescription_issued
+    type: boolean
+    description: A medication was started or changed during this consultation.
+
+  - field: allergy_documented
+    type: boolean
+    description: Allergy status was covered aloud.
+
+  - field: pregnancy_documented
+    type: boolean
+    description: Pregnancy status was covered aloud.
+
+  - field: female_reproductive_age
+    type: boolean
+    description: >-
+      Whether pregnancy-gated checks apply. Derived from demographics rather
+      than from anything said, and false when age or sex is unknown.

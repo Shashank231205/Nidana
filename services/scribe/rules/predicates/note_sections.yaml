@@ -1,0 +1,48 @@
+# Predicates over what a note does and does not contain.
+#
+# These test the note's own shape rather than a patient's symptoms, which is
+# why Scribe's field vocabulary differs from Consult's. The engine is the same.
+predicates:
+  - id: subjective_documented
+    field: has_subjective
+    comparator: is_true
+
+  - id: subjective_not_documented
+    field: has_subjective
+    comparator: is_false
+
+  - id: examination_not_documented
+    field: has_examination
+    comparator: is_false
+
+  - id: assessment_documented
+    field: has_assessment
+    comparator: is_true
+
+  - id: assessment_not_documented
+    field: has_assessment
+    comparator: is_false
+
+  - id: plan_documented
+    field: has_plan
+    comparator: is_true
+
+  - id: follow_up_not_documented
+    field: has_follow_up
+    comparator: is_false
+
+  - id: prescription_issued
+    field: prescription_issued
+    comparator: is_true
+
+  - id: allergy_not_documented
+    field: allergy_documented
+    comparator: is_false
+
+  - id: pregnancy_not_documented
+    field: pregnancy_documented
+    comparator: is_false
+
+  - id: patient_female_reproductive_age
+    field: female_reproductive_age
+    comparator: is_true

@@ -1,0 +1,72 @@
+# Note completeness rules.
+#
+# These flag clinically expected elements a consultation did not cover. Every
+# one is advisory: Scribe surfaces the gap and the clinician decides. A rule
+# that blocks signing carries REQUIRE_BEFORE_SIGN, and even then the clinician
+# may dismiss it with a reason rather than fill it.
+#
+# The system never fills a clinical field. If the examiner did not say it, it
+# does not appear.
+#
+# UNVERIFIED. Which elements are clinically expected in which consultation is a
+# clinical judgement, not an engineering one. These name plausible checks; a
+# clinician decides which are right and which are missing.
+name: scribe_note_completeness
+version: 0.1.0
+
+rules:
+  - id: NC_ALLERGY_001
+    label: Allergy status not covered before a new prescription
+    any_of:
+      - all_of: [prescription_issued, allergy_not_documented]
+    action: REQUIRE_BEFORE_SIGN
+    source: >-
+      PLACEHOLDER pending clinician review. Prescribing without a recorded
+      allergy check is a common and consequential omission, but whether it
+      should block signing is a clinical and workflow decision.
+    verify_before_ship: true
+
+  - id: NC_FOLLOWUP_002
+    label: No follow-up interval stated
+    any_of:
+      - all_of: [plan_documented, follow_up_not_documented]
+    action: FLAG_OMISSION
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: NC_EXAMINATION_003
+    label: No examination finding recorded
+    any_of:
+      - all_of: [assessment_documented, examination_not_documented]
+    action: FLAG_OMISSION
+    source: >-
+      PLACEHOLDER pending clinician review. An assessment with no recorded
+      examination may mean the examination was silent rather than absent, which
+      is why this flags rather than blocks.
+    verify_before_ship: true
+
+  - id: NC_PREGNANCY_004
+    label: Pregnancy status not covered before prescribing
+    any_of:
+      - all_of: [prescription_issued, patient_female_reproductive_age, pregnancy_not_documented]
+    action: REQUIRE_BEFORE_SIGN
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
+
+  - id: NC_ASSESSMENT_005
+    label: Plan recorded without an assessment
+    any_of:
+      - all_of: [plan_documented, assessment_not_documented]
+    action: FLAG_OMISSION
+    source: >-
+      PLACEHOLDER pending clinician review. A plan with no stated impression
+      is hard to defend later and hard for the next clinician to build on.
+    verify_before_ship: true
+
+  - id: NC_SUBJECTIVE_006
+    label: No history recorded
+    any_of:
+      - all_of: [assessment_documented, subjective_not_documented]
+    action: FLAG_OMISSION
+    source: PLACEHOLDER pending clinician review.
+    verify_before_ship: true
