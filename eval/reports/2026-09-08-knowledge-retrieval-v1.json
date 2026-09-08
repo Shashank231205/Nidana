@@ -1,0 +1,58 @@
+{
+  "generated_on": "2026-09-08",
+  "index": {
+    "chunks": 1127,
+    "sources": [
+      "iphs_2022_chc",
+      "iphs_2022_dh",
+      "iphs_2022_phc"
+    ],
+    "embedding_model": "nomic-embed-text"
+  },
+  "relevance_floor": 0.68,
+  "in_corpus": [
+    {
+      "question": "Does a district hospital provide dialysis?",
+      "best_score": 0.755,
+      "returned_at_floor": true
+    },
+    {
+      "question": "Is a burn unit required at a district hospital?",
+      "best_score": 0.766,
+      "returned_at_floor": true
+    },
+    {
+      "question": "Nephrology Urology Oncology Cardiology specialist staffing",
+      "best_score": 0.71,
+      "returned_at_floor": true
+    },
+    {
+      "question": "What ambulance services should a district hospital have?",
+      "best_score": 0.788,
+      "returned_at_floor": true
+    }
+  ],
+  "out_of_corpus": [
+    {
+      "question": "What is the recommended dose of adrenaline in anaphylaxis?",
+      "best_score": 0.612,
+      "returned_at_floor": false
+    },
+    {
+      "question": "How do I bake sourdough bread?",
+      "best_score": 0.448,
+      "returned_at_floor": false
+    },
+    {
+      "question": "What is the capital of France?",
+      "best_score": 0.449,
+      "returned_at_floor": false
+    },
+    {
+      "question": "Which football team won the 1998 World Cup?",
+      "best_score": 0.495,
+      "returned_at_floor": false
+    }
+  ],
+  "note": "The floor is measured, not chosen. In-corpus questions score 0.71-0.79 and out-of-corpus 0.45-0.61; the floor sits in the gap. The adrenaline question is why an earlier 0.55 was wrong: IPHS says nothing about dosing, but it is a clinical document, so a clinical question scores well above an unrelated one. Measures retrieval behaviour only. IPHS states what a facility should provide, not what to do for a patient, and no clinical claim follows from these numbers."
+}

@@ -30,13 +30,24 @@ from spine.knowledge.index import (
 )
 from spine.knowledge.sources import Tier
 
-RELEVANCE_FLOOR: Final[float] = 0.55
+RELEVANCE_FLOOR: Final[float] = 0.68
 """Below this a passage is not returned.
 
 Cosine similarity always ranks something first. For a question the corpus does
 not cover, that something is noise wearing the same confident format as a real
 hit, and a clinician reading a cited passage reasonably assumes the citation
-means something. Set high enough that "no answer" is a normal outcome.
+means something.
+
+Measured against the built index rather than chosen. Questions the corpus
+answers score 0.71 to 0.79; questions it does not — an adrenaline dose, a
+football result — score 0.45 to 0.61. The gap between those bands is where this
+sits.
+
+The adrenaline case is why the first guess of 0.55 was wrong. IPHS says nothing
+about drug dosing, but it is a clinical document, so a clinical question
+scores far higher against it than an unrelated one does. A floor set below that
+returns facility-standards prose in answer to a dosing question, cited, and
+reading as though the corpus had answered it.
 """
 
 EMBED_ENDPOINT: Final[str] = "http://localhost:11434/api/embeddings"
