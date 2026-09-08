@@ -75,6 +75,18 @@ class Session:
     transcript: list[tuple[str, str]] = field(default_factory=list)
     audit: list[AuditEvent] = field(default_factory=list)
     turn_index: int = 0
+    consent_granted: bool = False
+    consent_text_version: str | None = None
+
+    @property
+    def has_consent(self) -> bool:
+        """Whether this session may record what the patient says.
+
+        The DPDP Act requires consent to be explicit, purpose-bound and logged.
+        A checkbox in a browser satisfies none of that on its own, so the
+        decision is recorded on the session and written to the audit chain.
+        """
+        return self.consent_granted
 
     def __post_init__(self) -> None:
         self.record = Record(subject_type=SubjectType.SESSION, subject_id=self.id)

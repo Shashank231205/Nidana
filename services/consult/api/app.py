@@ -32,6 +32,7 @@ from services.consult.session import (
     complete,
     submit_turn,
 )
+from spine.audit.events import EventType
 from spine.inference.config import InferenceConfig, build_provider, model_spec
 from spine.inference.prompts import assert_clinical_prompts_are_deterministic, load_all
 from spine.rules.predicate_loader import (
@@ -141,6 +142,34 @@ def _session(session_id: UUID) -> Session:
     return found
 
 
+CONSENT_TEXT_VERSION: Final[str] = "2026-09-08.1"
+"""Which wording the patient agreed to.
+
+Recorded with every consent decision. Consent to one form of words is not
+consent to a later, broader one, and without the version a record cannot show
+which was shown.
+"""
+
+
+class ConsentRequest(BaseModel):
+    """A patient's decision about recording this session."""
+
+    granted: bool
+    purpose: str = Field(
+        default="triage",
+        min_length=1,
+        description="What the consent covers. Purpose-bound under the DPDP Act.",
+    )
+    consent_text_version: str = CONSENT_TEXT_VERSION
+
+
+class ConsentResponse(BaseModel):
+    session_id: UUID
+    granted: bool
+    purpose: str
+    consent_text_version: str
+
+
 class TurnRequest(BaseModel):
     utterance: str = Field(min_length=1)
 
@@ -204,9 +233,48 @@ def create_session() -> SessionResponse:
     )
 
 
+@app.post("/v1/sessions/{session_id}/consent")
+def record_consent(session_id: UUID, request: ConsentRequest) -> ConsentResponse:
+    """Record the patient's decision about this session.
+
+    Withdrawal is a new decision rather than a deletion: it is posted here with
+    `granted` false, which appends to the audit chain. Erasing the earlier
+    consent would leave a record that could not show what was agreed at the
+    time the questions were asked.
+    """
+    session = _session(session_id)
+    session.consent_granted = request.granted
+    session.consent_text_version = request.consent_text_version
+    session.log(
+        EventType.CONSENT_RECORDED,
+        actor="patient",
+        occurred_at=_now(),
+        payload={
+            "granted": request.granted,
+            "purpose": request.purpose,
+            "consent_text_version": request.consent_text_version,
+        },
+    )
+    return ConsentResponse(
+        session_id=session.id,
+        granted=request.granted,
+        purpose=request.purpose,
+        consent_text_version=request.consent_text_version,
+    )
+
+
 @app.post("/v1/sessions/{session_id}/turns")
 def submit(session_id: UUID, request: TurnRequest) -> TurnResponse:
     session = _session(session_id)
+    if not session.has_consent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"session {session_id} has no recorded consent and takes no turns; "
+                f"post the patient's decision to "
+                f"POST /v1/sessions/{session_id}/consent first"
+            ),
+        )
     if session.status is not SessionStatus.ACTIVE:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

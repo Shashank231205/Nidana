@@ -102,6 +102,22 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     return client_with(monkeypatch, ScriptedProvider(NEXT_QUESTION))
 
 
+def consented_session(client: TestClient) -> str:
+    """A session that may take turns.
+
+    Turns are refused without recorded consent, which the DPDP Act requires to
+    be explicit and logged. Every test that submits a turn goes through here,
+    so the gate is exercised rather than bypassed.
+    """
+    session_id = client.post("/v1/sessions").json()["session_id"]
+    granted = client.post(
+        f"/v1/sessions/{session_id}/consent", json={"granted": True}
+    )
+    assert granted.status_code == 200
+    return str(session_id)
+
+
+
 class TestHealth:
     def test_health_reports_healthy_when_rules_are_loaded(self, client: TestClient) -> None:
         body = client.get("/health").json()
@@ -138,7 +154,7 @@ class TestSessionLifecycle:
         assert "POST /v1/sessions" in response.json()["detail"]
 
     def test_a_turn_returns_the_next_question_shape(self, client: TestClient) -> None:
-        session_id = client.post("/v1/sessions").json()["session_id"]
+        session_id = consented_session(client)
         body = client.post(
             f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"}
         ).json()
@@ -146,12 +162,12 @@ class TestSessionLifecycle:
         assert body["question"] == "Since when?"
 
     def test_an_empty_utterance_is_rejected(self, client: TestClient) -> None:
-        session_id = client.post("/v1/sessions").json()["session_id"]
+        session_id = consented_session(client)
         response = client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": ""})
         assert response.status_code == 422
 
     def test_the_session_reports_its_findings(self, client: TestClient) -> None:
-        session_id = client.post("/v1/sessions").json()["session_id"]
+        session_id = consented_session(client)
         client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
         body = client.get(f"/v1/sessions/{session_id}").json()
         assert body["turn_index"] == 1
@@ -167,7 +183,7 @@ class TestRedFlagTermination:
             monkeypatch,
             ScriptedProvider(NEXT_QUESTION, STRUCTURED_CHEST_PAIN, NEXT_QUESTION),
         )
-        session_id = client.post("/v1/sessions").json()["session_id"]
+        session_id = consented_session(client)
         client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
         body = client.post(
             f"/v1/sessions/{session_id}/turns",
@@ -183,7 +199,7 @@ class TestRedFlagTermination:
             monkeypatch,
             ScriptedProvider(NEXT_QUESTION, STRUCTURED_CHEST_PAIN, NEXT_QUESTION),
         )
-        session_id = client.post("/v1/sessions").json()["session_id"]
+        session_id = consented_session(client)
         client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
         client.post(
             f"/v1/sessions/{session_id}/turns",
@@ -198,20 +214,20 @@ class TestRedFlagTermination:
 
 class TestAudit:
     def test_the_audit_trail_is_exposed(self, client: TestClient) -> None:
-        session_id = client.post("/v1/sessions").json()["session_id"]
+        session_id = consented_session(client)
         client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
         entries = client.get(f"/v1/sessions/{session_id}/audit").json()["entries"]
         assert entries
         assert entries[0]["sequence"] == 0
 
     def test_the_chain_verifies(self, client: TestClient) -> None:
-        session_id = client.post("/v1/sessions").json()["session_id"]
+        session_id = consented_session(client)
         client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
         raw = client.get(f"/v1/sessions/{session_id}/audit").json()["entries"]
         verify(tuple(AuditEvent.model_validate(entry) for entry in raw))
 
     def test_every_model_call_records_its_prompt_version(self, client: TestClient) -> None:
-        session_id = client.post("/v1/sessions").json()["session_id"]
+        session_id = consented_session(client)
         client.post(f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"})
         entries = client.get(f"/v1/sessions/{session_id}/audit").json()["entries"]
         called = [e for e in entries if e["event_type"] == "model_called"]
@@ -247,3 +263,79 @@ class TestStartupChecks:
         monkeypatch.setenv("NIDANA_INFERENCE_TRANSPORT", "hosted")
         with pytest.raises(UnsafeConfigurationError, match="off this machine"):
             api.build_dependencies()
+
+
+class TestConsent:
+    """The DPDP Act requires consent to be explicit, purpose-bound and logged.
+
+    A checkbox in a browser satisfies none of that on its own, so the decision
+    is recorded on the session and written to the hash-chained audit log.
+    """
+
+    def test_a_session_without_consent_takes_no_turns(self, client: TestClient) -> None:
+        session_id = client.post("/v1/sessions").json()["session_id"]
+        response = client.post(
+            f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"}
+        )
+        assert response.status_code == 403
+
+    def test_the_refusal_names_the_endpoint_to_call(self, client: TestClient) -> None:
+        session_id = client.post("/v1/sessions").json()["session_id"]
+        response = client.post(
+            f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"}
+        )
+        assert "/consent" in response.json()["detail"]
+
+    def test_granting_consent_allows_turns(self, client: TestClient) -> None:
+        session_id = consented_session(client)
+        response = client.post(
+            f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"}
+        )
+        assert response.status_code == 200
+
+    def test_the_consent_text_version_is_recorded(self, client: TestClient) -> None:
+        """Consent to one form of words is not consent to a later, broader one."""
+        session_id = client.post("/v1/sessions").json()["session_id"]
+        body = client.post(
+            f"/v1/sessions/{session_id}/consent", json={"granted": True}
+        ).json()
+        assert body["consent_text_version"] == api.CONSENT_TEXT_VERSION
+
+    def test_consent_is_purpose_bound(self, client: TestClient) -> None:
+        session_id = client.post("/v1/sessions").json()["session_id"]
+        body = client.post(
+            f"/v1/sessions/{session_id}/consent",
+            json={"granted": True, "purpose": "triage"},
+        ).json()
+        assert body["purpose"] == "triage"
+
+    def test_withdrawal_stops_further_turns(self, client: TestClient) -> None:
+        session_id = consented_session(client)
+        client.post(f"/v1/sessions/{session_id}/consent", json={"granted": False})
+        response = client.post(
+            f"/v1/sessions/{session_id}/turns", json={"utterance": "chest pain"}
+        )
+        assert response.status_code == 403
+
+    def test_withdrawal_appends_rather_than_erasing(self, client: TestClient) -> None:
+        """A record that cannot show what was agreed at the time is not a record."""
+        session_id = consented_session(client)
+        client.post(f"/v1/sessions/{session_id}/consent", json={"granted": False})
+        entries = client.get(f"/v1/sessions/{session_id}/audit").json()["entries"]
+        decisions = [
+            entry for entry in entries if entry["event_type"] == "consent_recorded"
+        ]
+        assert len(decisions) == 2
+        assert [decision["payload"]["granted"] for decision in decisions] == [True, False]
+
+    def test_the_consent_decision_is_in_the_hash_chain(self, client: TestClient) -> None:
+        session_id = consented_session(client)
+        entries = client.get(f"/v1/sessions/{session_id}/audit").json()["entries"]
+        verify(tuple(AuditEvent.model_validate(entry) for entry in entries))
+
+    def test_consent_on_an_unknown_session_is_a_404(self, client: TestClient) -> None:
+        response = client.post(
+            "/v1/sessions/00000000-0000-0000-0000-000000000000/consent",
+            json={"granted": True},
+        )
+        assert response.status_code == 404
