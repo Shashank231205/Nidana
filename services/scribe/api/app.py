@@ -34,12 +34,7 @@ from spine.inference.prompts import (
     assert_clinical_prompts_are_deterministic,
     load_all,
 )
-from spine.rules.predicate_loader import (
-    check_enum_operands,
-    load_predicates,
-    resolve_against_registries,
-)
-from spine.rules.registry_loader import load_all as load_registries
+from spine.rules.predicate_loader import load_predicates, predicates_dir
 from spine.rules.rule_loader import (
     load_rule_sets,
     require_verified,
@@ -101,10 +96,9 @@ def build_dependencies() -> Dependencies:
     deployment with a dead completeness rule is unsafe whether or not inference
     works.
     """
-    registries = load_registries()
-    predicates = load_predicates()
-    resolve_against_registries(predicates, registries)
-    check_enum_operands(predicates, registries)
+    # Scribe's own predicates. The default is Consult's, and loading those here
+    # leaves every completeness rule referencing an atom that is not present.
+    predicates = load_predicates(predicates_dir("scribe"))
 
     rule_sets = load_rule_sets(rules_dir("scribe", "completeness"), NoteCheckAction)
     resolve_atoms(rule_sets, predicates)

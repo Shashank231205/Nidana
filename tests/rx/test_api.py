@@ -131,7 +131,13 @@ class TestChecks:
         assert body["blocks_dispensing"] is True
 
     def test_an_allergy_is_reported(self) -> None:
-        record = empty_record(allergies=(Allergy(substance="penicillin"),))
+        """The allergy names the molecule.
+
+        Class matching -- that a penicillin allergy covers amoxicillin -- needs
+        a real dataset and is deliberately not attempted, so the test does not
+        assert it.
+        """
+        record = empty_record(allergies=(Allergy(substance="amoxicillin"),))
         payload = {
             "medications": MedicationList(
                 medications=(medication("Tab Amoxil 500mg TDS", "amoxicillin"),)

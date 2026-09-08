@@ -24,7 +24,10 @@ from spine.inference.adapter import (  # noqa: E402
     Transport,
 )
 from spine.inference.prompts import load_all  # noqa: E402
-from spine.rules.predicate_loader import load_predicates  # noqa: E402
+from spine.rules.predicate_loader import (  # noqa: E402
+    load_predicates,
+    predicates_dir,
+)
 from spine.rules.rule_loader import load_rule_sets, rules_dir  # noqa: E402
 from spine.schemas.record import Record, SubjectType  # noqa: E402
 from spine.schemas.transcript import (  # noqa: E402
@@ -93,7 +96,7 @@ class ScriptedProvider(InferenceProvider):
 
 
 def dependencies(*responses: str) -> api.Dependencies:
-    predicates = load_predicates()
+    predicates = load_predicates(predicates_dir("scribe"))
     return api.Dependencies(
         provider=ScriptedProvider(*responses),
         prompts=load_all("scribe"),

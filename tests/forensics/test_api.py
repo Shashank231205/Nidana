@@ -189,7 +189,7 @@ class TestFinalisation:
         create(test_client, document)
         body = test_client.post(
             f"/v1/examinations/{document.examination_id}/finalise",
-            json={"actor": EXAMINER},
+            json={"actor": EXAMINER, "signature": "Dr Forensic, MBBS"},
         ).json()
         assert body["report"]["status"] == "finalised"
 
@@ -200,7 +200,7 @@ class TestFinalisation:
         create(test_client, document)
         test_client.post(
             f"/v1/examinations/{document.examination_id}/finalise",
-            json={"actor": EXAMINER},
+            json={"actor": EXAMINER, "signature": "Dr Forensic, MBBS"},
         )
         body = test_client.post(
             f"/v1/examinations/{document.examination_id}/amend",

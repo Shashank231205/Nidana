@@ -117,6 +117,17 @@ class AccessRequest(BaseModel):
     actor: str = Field(min_length=1)
 
 
+class FinaliseRequest(BaseModel):
+    """Who is closing the record, and their signature.
+
+    A finalised report carries the examiner's signature: without it the chain
+    cannot be shown to have been closed by the person who examined.
+    """
+
+    actor: str = Field(min_length=1)
+    signature: str = Field(min_length=1)
+
+
 class AmendRequest(BaseModel):
     report: MedicoLegalReport
     actor: str = Field(min_length=1)
@@ -199,7 +210,7 @@ def amend(examination_id: UUID, request: AmendRequest) -> ReportResponse:
 
 
 @app.post("/v1/examinations/{examination_id}/finalise")
-def finalise(examination_id: UUID, request: AccessRequest) -> ReportResponse:
+def finalise(examination_id: UUID, request: FinaliseRequest) -> ReportResponse:
     """Finalise the examination.
 
     Finalisation does not close the chain. An amendment after this point is
@@ -208,9 +219,19 @@ def finalise(examination_id: UUID, request: AccessRequest) -> ReportResponse:
     tampering the chain exists to make visible.
     """
     examination = _verified(_examination(examination_id))
-    examination.report = examination.report.model_copy(
-        update={"status": ExaminationStatus.FINALISED}
+    # Revalidated rather than model_copy'd straight in: model_copy bypasses the
+    # validators, and the two that matter here are the ones requiring a
+    # signature and a finalisation time on a closed report.
+    finalised = MedicoLegalReport.model_validate(
+        examination.report.model_copy(
+            update={
+                "status": ExaminationStatus.FINALISED,
+                "signature": request.signature,
+                "finalised_at": _now(),
+            }
+        ).model_dump()
     )
+    examination.report = finalised
     _append(examination, CustodyAction.FINALISED, request.actor)
     return _to_response(examination)
 
