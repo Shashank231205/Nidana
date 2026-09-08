@@ -12,6 +12,8 @@ for a human, which stays the right side of the regulatory boundary.
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Final
 from uuid import UUID, uuid4
@@ -32,10 +34,26 @@ it and reports every line unresolved rather than guessing a molecule, because
 a wrong molecule silently invalidates every other check on the list.
 """
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Load the brand index before the first request.
+
+    A missing index is not fatal here: the deterministic checks still run, and
+    an unresolved line is already a CONTRAINDICATED finding.
+    """
+    # Module-level state is how startup publishes what it loaded. Request
+    # handlers read it; nothing else writes it.
+    global _brand_index, _started  # noqa: PLW0603
+    _brand_index = build_dependencies()
+    _started = True
+    yield
+
+
 app = FastAPI(
     title="Nidana Rx",
     description="Prescription reading and dispensing safety checks.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 _brand_index: BrandIndex | None = None
@@ -59,14 +77,6 @@ def build_dependencies() -> BrandIndex | None:
             f"{BRAND_INDEX_PATH} is set to {configured} but the index did not load: "
             f"{error}. Unset it to run without brand resolution, or fix the file"
         ) from error
-
-
-@app.on_event("startup")
-def _startup() -> None:
-    # Module-level state is how the startup hook publishes what it loaded.
-    global _brand_index, _started  # noqa: PLW0603
-    _brand_index = build_dependencies()
-    _started = True
 
 
 class FindingResponse(BaseModel):

@@ -109,11 +109,35 @@ engineer. See below.
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"
 
-pytest tests/ -q                     # 635 tests
+pytest tests/ -q                     # 793 tests
 mypy spine services tests            # strict
 ruff check spine services tests
 python scripts/verify_rules.py       # every rule atom resolves and can fire
+python scripts/verify_boundaries.py  # the four architectural boundaries hold
 ```
+
+### If pip fails with CERTIFICATE_VERIFY_FAILED
+
+Some endpoint security products (Avast and Kaspersky among them) intercept TLS
+and re-sign it with their own root. Python does not read the Windows
+certificate store, so pip rejects the substituted certificate while browsers
+and curl accept it. Check what is actually being presented:
+
+```bash
+openssl s_client -connect pypi.org:443 -servername pypi.org </dev/null 2>/dev/null | grep issuer=
+```
+
+If the issuer is not a public CA, export that root from the Windows store and
+point pip at a bundle containing it:
+
+```powershell
+$c = Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*<product>*" }
+# write $c.RawData as base64 PEM, append it to a Mozilla bundle, then:
+pip install --cert <bundle>.pem -e ".[dev]"
+```
+
+Without this the API tests skip rather than fail, so the suite still reports
+green while 63 tests never run. Check for `skipped` in the pytest summary.
 
 To run it against a local model:
 

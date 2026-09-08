@@ -14,6 +14,8 @@ clinician sign-off.
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Final
 from uuid import UUID, uuid4
 
@@ -30,10 +32,27 @@ from services.labs.clinical.critical_values import (
 )
 from spine.schemas.lab import LabReport
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Load and validate everything before the first request, or refuse to serve.
+
+    A deployment that cannot detect a critical value should not accept reports:
+    returning "no critical findings" because the thresholds failed to load is
+    indistinguishable, to the reader, from a normal result.
+    """
+    # Module-level state is how startup publishes what it loaded. Request
+    # handlers read it; nothing else writes it.
+    global _thresholds  # noqa: PLW0603
+    _thresholds = build_dependencies()
+    yield
+
+
 app = FastAPI(
     title="Nidana Labs",
     description="Lab report interpretation and critical value detection.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 _thresholds: dict[str, CriticalThreshold] | None = None
@@ -57,11 +76,6 @@ def build_dependencies() -> dict[str, CriticalThreshold]:
     return thresholds
 
 
-@app.on_event("startup")
-def _startup() -> None:
-    # Module-level state is how the startup hook publishes what it loaded.
-    global _thresholds  # noqa: PLW0603
-    _thresholds = build_dependencies()
 
 
 def _deps() -> dict[str, CriticalThreshold]:

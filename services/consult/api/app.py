@@ -13,6 +13,8 @@ production. A deployment that cannot triage safely does not start serving.
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Final
 from uuid import UUID
@@ -52,10 +54,27 @@ Only these may run above temperature 0. Named explicitly so adding an agent
 forces the decision rather than defaulting it.
 """
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Load and validate everything before the first request, or refuse to serve.
+
+    Rules load and resolve, prompts load and their temperatures are checked, the
+    inference provider is reached, and the release gate refuses unverified
+    clinical criteria in production. A deployment that cannot triage safely does
+    not start serving.
+    """
+    # Module-level state is how startup publishes what it loaded. Request
+    # handlers read it; nothing else writes it.
+    global _dependencies  # noqa: PLW0603
+    _dependencies = build_dependencies()
+    yield
+
+
 app = FastAPI(
     title="Nidana Consult",
     description="Conversational triage and routing. Triages; does not diagnose.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 _sessions: dict[UUID, Session] = {}
@@ -101,12 +120,6 @@ def build_dependencies() -> Dependencies:
     )
 
 
-@app.on_event("startup")
-def _startup() -> None:
-    # Module-level state is how the startup hook publishes what it loaded.
-    # Request handlers read it; nothing else writes it.
-    global _dependencies  # noqa: PLW0603
-    _dependencies = build_dependencies()
 
 
 def _deps() -> Dependencies:

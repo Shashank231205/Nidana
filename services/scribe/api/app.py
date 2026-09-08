@@ -16,6 +16,8 @@ the ClinicalNote validator, not here; this layer turns its refusal into a 409.
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Final
@@ -55,10 +57,25 @@ temperature 0. Named explicitly so adding a conversational agent forces the
 decision rather than defaulting it.
 """
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Load and validate everything before the first request, or refuse to serve.
+
+    A deployment with a dead completeness rule is unsafe whether or not
+    inference works, so the rules are checked before the model is reached.
+    """
+    # Module-level state is how startup publishes what it loaded. Request
+    # handlers read it; nothing else writes it.
+    global _dependencies  # noqa: PLW0603
+    _dependencies = build_dependencies()
+    yield
+
+
 app = FastAPI(
     title="Nidana Scribe",
     description="Ambient consultation notes. Grounded in the transcript, or dropped.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 
@@ -119,11 +136,6 @@ def build_dependencies() -> Dependencies:
     )
 
 
-@app.on_event("startup")
-def _startup() -> None:
-    # Module-level state is how the startup hook publishes what it loaded.
-    global _dependencies  # noqa: PLW0603
-    _dependencies = build_dependencies()
 
 
 def _deps() -> Dependencies:
