@@ -26,3 +26,7 @@ eval/reports/*.local.json
 # artefact that a deployment rebuilds from the registry.
 data/corpus/
 data/knowledge_index.json
+
+# Local machine setup, not the project's. Holds the CA bundle needed where a
+# TLS-intercepting antivirus sits between pip and PyPI.
+.local/
