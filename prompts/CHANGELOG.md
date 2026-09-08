@@ -63,3 +63,40 @@ clinical claim follows from anything above.
 **Blocked.** The vignette sets for all five services are empty. Writing them
 means authoring clinical content, which is a clinician's job — see
 `CLAUDE.md` §1.
+
+---
+
+## 2026-09-08 — triage_agent 1.0.0 → 1.1.0, differential breadth
+
+The schema already allowed any condition — `condition` is a free string and
+there is no vocabulary to match against. The prompt was the constraint: the
+protocol said "worst plausible explanation" without asking the model to
+enumerate before narrowing, and the field rule said the differential "may be
+empty". A small model given that guidance names one obvious thing and stops.
+
+Changed:
+
+- Protocol step 4 now asks the model to widen before narrowing, across every
+  organ system that could refer symptoms there rather than the one the
+  complaint names, and states that no list of permitted conditions exists.
+- The differential field rule asks for three to six entries ordered by danger
+  rather than likelihood, and requires the serious possibility being argued
+  against to be written down with its opposing evidence.
+- Three failure modes added: stopping at the first fitting diagnosis, staying
+  inside the named organ system, and writing only what you believe.
+
+Report: `eval/reports/2026-09-08-differential-breadth-v1.json`
+
+```
+llama3.2:3b     before  0 entries (returned the empty template)
+llama3.2:3b     after   1 entry, with opposing evidence
+granite4.1:3b   after   4 entries across 4 organ systems, 3 with opposing
+```
+
+granite4.1:3b produced acute myocardial infarction, GERD, panic attack and
+costochondritis from one record — cardiac, gastro-oesophageal, psychiatric and
+musculoskeletal. That is the breadth the change was for.
+
+**This measures breadth, not correctness.** Whether those are the right four
+conditions for a 34-year-old with exertional chest tightness needs a clinician
+and a vignette set. Breadth without correctness is not a clinical claim.

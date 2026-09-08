@@ -1,0 +1,30 @@
+{
+  "generated_on": "2026-09-08",
+  "prompt": "services/consult/prompts/triage_agent.md",
+  "before_version": "1.0.0",
+  "after_version": "1.1.0",
+  "method": "Same record, same temperature 0, differential guidance isolated as the only variable. Live Ollama models, not scripted.",
+  "record": "34F, chest tightness 2 days, exertional onset, relieved by rest, no radiation reported, no comorbidities, no red flags fired",
+  "results": [
+    {
+      "model": "llama3.2:3b",
+      "before": {"entries": 0, "note": "returned the empty template, named no condition"},
+      "after": {"entries": 1, "conditions": ["Acute Coronary Syndrome"], "with_opposing": 1}
+    },
+    {
+      "model": "granite4.1:3b",
+      "after": {
+        "entries": 4,
+        "conditions": [
+          "Acute Myocardial Infarction",
+          "Gastroesophageal Reflux Disease",
+          "Anxiety or Panic Attack",
+          "Costochondritis"
+        ],
+        "organ_systems": 4,
+        "with_opposing": 3
+      }
+    }
+  ],
+  "note": "Measures differential breadth and whether opposing evidence is argued, not clinical correctness. Whether these are the right four conditions for this record needs a clinician and a vignette set that does not exist. qwen3 models were excluded: extended thinking output did not parse within the timeout."
+}
