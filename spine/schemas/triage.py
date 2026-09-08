@@ -25,8 +25,18 @@ about what actually changes the picture.
 class Specialty(str, Enum):
     """Where a patient is routed.
 
-    Deliberately coarse. A specialty a patient cannot actually find nearby is
-    not a useful routing decision.
+    Scoped to what an Indian district hospital is expected to provide. IPHS
+    2022 Volume I names these as essential or desirable specialist services at
+    a District Hospital, and routing to a specialty the referral network does
+    not staff is not a useful decision.
+
+    Source: Indian Public Health Standards 2022, Volume I (Sub-District and
+    District Hospital), Ministry of Health and Family Welfare, specialist
+    services table. Verified against the published document 2026-09-08.
+
+    A presentation this list cannot express routes to HUMAN_REVIEW rather than
+    to the nearest approximate match. A wrong specialty sends someone to the
+    wrong queue; a stated refusal sends them to a person.
     """
 
     EMERGENCY = "emergency"
@@ -35,13 +45,22 @@ class Specialty(str, Enum):
     NEUROLOGY = "neurology"
     GASTROENTEROLOGY = "gastroenterology"
     PULMONOLOGY = "pulmonology"
+    NEPHROLOGY = "nephrology"
+    ENDOCRINOLOGY = "endocrinology"
+    RHEUMATOLOGY = "rheumatology"
+    HAEMATOLOGY = "haematology"
+    ONCOLOGY = "oncology"
+    INFECTIOUS_DISEASE = "infectious_disease"
     OBSTETRICS_GYNAECOLOGY = "obstetrics_gynaecology"
     PAEDIATRICS = "paediatrics"
+    NEONATOLOGY = "neonatology"
+    GERIATRICS = "geriatrics"
     SURGERY = "surgery"
     UROLOGY = "urology"
     ORTHOPAEDICS = "orthopaedics"
     OPHTHALMOLOGY = "ophthalmology"
     ENT = "ent"
+    DENTISTRY = "dentistry"
     DERMATOLOGY = "dermatology"
     PSYCHIATRY = "psychiatry"
     HUMAN_REVIEW = "human_review"
@@ -50,8 +69,14 @@ class Specialty(str, Enum):
 class Capability(str, Enum):
     """What a facility must be able to do.
 
-    Routing matches on capability, not distance. A facility index without these
-    degrades to distance-only and says so.
+    Routing matches on capability, not distance. The nearest hospital is the
+    wrong hospital when it cannot treat what the patient has, and a facility
+    index without these degrades to distance-only and says so.
+
+    Scoped to services IPHS 2022 expects at a district hospital, plus the
+    treatments whose absence is itself the emergency. Source: Indian Public
+    Health Standards 2022, Volume I, emergency and critical care services.
+    Verified against the published document 2026-09-08.
     """
 
     EMERGENCY_24X7 = "emergency_24x7"
@@ -65,6 +90,27 @@ class Capability(str, Enum):
     INTENSIVE_CARE = "intensive_care"
     PSYCHIATRIC_ASSESSMENT = "psychiatric_assessment"
     OPHTHALMOLOGY_ON_CALL = "ophthalmology_on_call"
+
+    DIALYSIS = "dialysis"
+    BURN_UNIT = "burn_unit"
+    """IPHS 2022: every District Hospital should have a separate burn unit and
+    burn cases should go directly to it."""
+
+    ANTIVENOM = "antivenom"
+    """Anti-snake venom, stocked.
+
+    A capability rather than a specialty because it is the one thing that
+    matters: a snakebite routed to a hospital without antivenom has been sent
+    to the wrong place however well staffed it is. India records the highest
+    snakebite mortality in the world, and the treatment is a stocked vial.
+    """
+
+    RABIES_IMMUNOGLOBULIN = "rabies_immunoglobulin"
+    """Distinct from vaccine, which is widely held. Immunoglobulin for a
+    category III exposure is not, and it is time-critical."""
+
+    VENTILATOR = "ventilator"
+    ENDOSCOPY = "endoscopy"
 
 
 class RedFlagOutcome(BaseModel):
