@@ -24,6 +24,13 @@ asr = [
     "faster-whisper>=1.0",
 ]
 
+# Optical character recognition for prescription images. Needs the Tesseract
+# binary from the distribution as well as these bindings.
+ocr = [
+    "pytesseract>=0.3.10",
+    "pillow>=10.0",
+]
+
 # Building the knowledge index. Build-time only: the clinic's runtime reads the
 # index this produces and never parses a PDF.
 knowledge = [
@@ -72,7 +79,7 @@ ignore_missing_imports = true
 # faster-whisper and huggingface_hub ship no py.typed marker. Both are optional
 # extras used behind an interface this repo defines and types itself.
 [[tool.mypy.overrides]]
-module = ["faster_whisper.*", "huggingface_hub.*"]
+module = ["faster_whisper.*", "huggingface_hub.*", "pytesseract.*", "PIL.*"]
 ignore_missing_imports = true
 
 # FastAPI's route decorators are untyped in some versions. The handlers
