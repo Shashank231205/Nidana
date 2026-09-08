@@ -60,7 +60,7 @@ ignore_missing_imports = true
 # FastAPI's route decorators are untyped in some versions. The handlers
 # themselves are fully annotated; the decorator is what mypy objects to.
 [[tool.mypy.overrides]]
-module = "services.consult.api.*"
+module = "services.*.api.*"
 disallow_untyped_decorators = false
 
 [tool.ruff]
