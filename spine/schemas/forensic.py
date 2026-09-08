@@ -249,3 +249,43 @@ class MedicoLegalReport(BaseModel):
     @property
     def is_finalisable(self) -> bool:
         return not self.blocking_gaps
+
+
+class DraftInjury(BaseModel):
+    """One injury the structuring agent claims the examiner described.
+
+    Measurements are strings because the examiner dictates "three centimetres"
+    as often as "3cm", and coercing to a float here would either fail on the
+    words or invent a precision the examiner did not state. The builder parses
+    and drops what it cannot read.
+
+    There is no provenance field. Provenance for an injury is the examiner's
+    own entry, and the builder attaches it from the dictation being structured.
+    A model cannot author one, which is the point.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    injury_type: InjuryType
+    site: str = Field(min_length=1)
+    source_span: str = Field(
+        min_length=1,
+        description="Exact substring of the examiner's dictation describing this injury",
+    )
+    landmark: str | None = None
+    landmark_distance_cm: str | None = None
+    length_cm: str | None = None
+    width_cm: str | None = None
+    depth_cm: str | None = None
+    shape: str | None = None
+    margins: str | None = None
+    direction: str | None = None
+    estimated_age: WoundAge = WoundAge.INDETERMINATE
+
+
+class ExaminationDraft(BaseModel):
+    """What the structuring agent returns for one dictation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    injuries: tuple[DraftInjury, ...] = ()

@@ -164,3 +164,46 @@ class MedicationList(BaseModel):
 
     def lines_containing(self, molecule: str) -> tuple[PrescribedMedication, ...]:
         return tuple(m for m in self.medications if molecule in m.molecule_names)
+
+
+class DraftLine(BaseModel):
+    """One prescription line the reading agent claims the image contained.
+
+    Everything is a string, exactly as written. Rx resolves the brand to a
+    molecule deterministically against an index, and normalising the text here
+    would remove the very characters that distinguish two similarly named
+    brands from each other.
+
+    There is no molecule field. Naming the molecule is the resolver's job, and
+    a model that guesses it bypasses the confidence threshold that decides
+    whether a pharmacist is asked to confirm.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    written_as: str = Field(min_length=1, description="The line as written, verbatim")
+    source_span: str = Field(
+        min_length=1,
+        description="Exact substring of the OCR text this line was read from",
+    )
+    strength: str | None = Field(
+        default=None, description="As written: '500mg', not normalised to a number"
+    )
+    frequency: str | None = Field(
+        default=None, description="As written: 'BD', 'TDS', '1-0-1'"
+    )
+    duration: str | None = Field(default=None, description="As written: '5 days', 'x1/52'")
+    route: Route = Route.UNKNOWN
+    legible: bool = Field(
+        default=True,
+        description="False where the line is visible but cannot be read",
+    )
+
+
+class PrescriptionDraft(BaseModel):
+    """What the reading agent returns for one prescription image."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    lines: tuple[DraftLine, ...] = ()
+    prescriber: str | None = None

@@ -208,3 +208,36 @@ class Trend(BaseModel):
         if abs(change) <= tolerance:
             return TrendDirection.STABLE
         return TrendDirection.RISING if change > 0 else TrendDirection.FALLING
+
+
+class DraftResult(BaseModel):
+    """One result the extraction agent claims the report contained.
+
+    The value is a string rather than a float because the agent transcribes
+    what is printed. "<0.01" and "5.4" are both things a report prints, and
+    coercing the first to a number here would invent a precision the lab did
+    not state. Parsing happens in the builder, which drops what it cannot read
+    rather than guessing.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    analyte: str = Field(min_length=1)
+    value: str = Field(min_length=1)
+    unit: str = Field(min_length=1)
+    source_span: str = Field(
+        min_length=1,
+        description="Exact substring of the report that this result was read from",
+    )
+    reference_low: str | None = None
+    reference_high: str | None = None
+    page: int = Field(default=1, ge=1)
+
+
+class ReportDraft(BaseModel):
+    """What the extraction agent returns for one report."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    results: tuple[DraftResult, ...] = ()
+    laboratory: str | None = None
