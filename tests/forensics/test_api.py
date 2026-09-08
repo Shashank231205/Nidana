@@ -17,6 +17,13 @@ fastapi = pytest.importorskip("fastapi", reason="API extra not installed")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from services.forensics.api import app as api  # noqa: E402
+from spine.inference.adapter import (  # noqa: E402
+    Completion,
+    InferenceProvider,
+    ModelSpec,
+    Transport,
+)
+from spine.inference.prompts import load_all  # noqa: E402
 from spine.schemas.forensic import (  # noqa: E402
     Injury,
     InjuryType,
@@ -211,3 +218,119 @@ class TestFinalisation:
             },
         ).json()
         assert body["amended_after_finalisation"] is True
+
+
+class ScriptedProvider(InferenceProvider):
+    """Answers with fixed text. The custody chain and the gate run for real."""
+
+    def __init__(self, *responses: str) -> None:
+        self.responses = list(responses) or ['{"injuries":[]}']
+        self.seen: list[tuple[str, str]] = []
+
+    @property
+    def transport(self) -> Transport:
+        return Transport.LOCAL
+
+    def is_available(self) -> bool:
+        return True
+
+    def complete(
+        self, *, prompt: str, system: str, spec: ModelSpec, prompt_version: str
+    ) -> Completion:
+        self.seen.append((prompt, system))
+        text = self.responses.pop(0) if len(self.responses) > 1 else self.responses[0]
+        return Completion(
+            text=text,
+            model_version=spec.name,
+            transport=Transport.LOCAL,
+            prompt_version=prompt_version,
+        )
+
+
+DICTATION = "There is an abrasion on the left forearm measuring 3 cm by 1 cm."
+
+
+def structuring_client(*responses: str) -> TestClient:
+    """A client wired for the structuring endpoint."""
+    api._examinations.clear()
+    api._provider = ScriptedProvider(*responses)
+    api._prompts = load_all("forensics")
+    return TestClient(api.app)
+
+
+def injury(span: str) -> str:
+    return (
+        '{"injuries":[{"injury_type":"abrasion","site":"left forearm",'
+        '"source_span":"' + span + '"}]}'
+    )
+
+
+class TestStructuring:
+    def test_a_dictated_injury_reaches_the_report(self) -> None:
+        client = structuring_client(injury("an abrasion on the left forearm"))
+        document = report()
+        create(client, document)
+        body = client.post(
+            f"/v1/examinations/{document.examination_id}/structure",
+            json={"dictation": DICTATION, "actor": EXAMINER},
+        ).json()
+        # One injury from the fixture, one from the dictation.
+        assert len(body["report"]["injuries"]) == 2
+        assert body["fabrication_count"] == 0
+
+    def test_an_undictated_injury_is_dropped_and_counted(self) -> None:
+        client = structuring_client(injury("a stab wound to the abdomen"))
+        document = report()
+        create(client, document)
+        body = client.post(
+            f"/v1/examinations/{document.examination_id}/structure",
+            json={"dictation": DICTATION, "actor": EXAMINER},
+        ).json()
+        assert len(body["report"]["injuries"]) == 1
+        assert body["fabrication_count"] == 1
+        assert body["dropped"]
+
+    def test_structuring_is_logged_to_the_custody_chain(self) -> None:
+        """A change to the record that left no trace would defeat the chain."""
+        client = structuring_client(injury("an abrasion on the left forearm"))
+        document = report()
+        created = create(client, document)
+        body = client.post(
+            f"/v1/examinations/{document.examination_id}/structure",
+            json={"dictation": DICTATION, "actor": EXAMINER},
+        ).json()
+        assert body["chain_length"] > created["chain_length"]
+
+    def test_a_finalised_examination_is_not_restructured(self) -> None:
+        """After finalisation a change is an amendment with a stated reason."""
+        client = structuring_client(injury("an abrasion on the left forearm"))
+        document = report()
+        create(client, document)
+        client.post(
+            f"/v1/examinations/{document.examination_id}/finalise",
+            json={"actor": EXAMINER, "signature": "Dr Forensic, MBBS"},
+        )
+        response = client.post(
+            f"/v1/examinations/{document.examination_id}/structure",
+            json={"dictation": DICTATION, "actor": EXAMINER},
+        )
+        assert response.status_code == 409
+        assert "amend" in response.json()["detail"]
+
+    def test_an_unknown_examination_is_a_404(self) -> None:
+        client = structuring_client()
+        response = client.post(
+            f"/v1/examinations/{uuid4()}/structure",
+            json={"dictation": DICTATION, "actor": EXAMINER},
+        )
+        assert response.status_code == 404
+
+    def test_an_unattributed_structuring_is_rejected(self) -> None:
+        client = structuring_client()
+        document = report()
+        create(client, document)
+        response = client.post(
+            f"/v1/examinations/{document.examination_id}/structure",
+            json={"dictation": DICTATION, "actor": ""},
+        )
+        assert response.status_code == 422

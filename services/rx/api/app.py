@@ -19,10 +19,18 @@ from typing import Final
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from services.rx.agents.reading_agent import PrescriptionTooLongError, read
 from services.rx.agents.resolver import BrandIndex, BrandIndexError, load_brand_index
 from services.rx.clinical.checks import Finding, blocks_dispensing, run_all
+from spine.inference.adapter import InferenceProvider
+from spine.inference.config import InferenceConfig, build_provider, model_spec
+from spine.inference.prompts import (
+    Prompt,
+    assert_clinical_prompts_are_deterministic,
+    load_all,
+)
 from spine.schemas.medication import MedicationList
 from spine.schemas.record import Record
 
@@ -43,8 +51,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """
     # Module-level state is how startup publishes what it loaded. Request
     # handlers read it; nothing else writes it.
-    global _brand_index, _started  # noqa: PLW0603
+    global _brand_index, _provider, _prompts, _started  # noqa: PLW0603
     _brand_index = build_dependencies()
+    _prompts = load_all("rx")
+    assert_clinical_prompts_are_deterministic(_prompts, CONVERSATIONAL_AGENTS)
+    config = InferenceConfig.from_environment()
+    _provider = build_provider(config)
+    model_spec(config)
     _started = True
     yield
 
@@ -57,7 +70,16 @@ app = FastAPI(
 )
 
 _brand_index: BrandIndex | None = None
+_provider: InferenceProvider | None = None
+_prompts: dict[str, Prompt] = {}
 _started = False
+
+CONVERSATIONAL_AGENTS: Final[frozenset[str]] = frozenset()
+"""Rx has no conversational agent.
+
+Reading a prescription is a transcription task, so every prompt here runs at
+temperature 0. Named explicitly so adding one forces the decision.
+"""
 
 
 def build_dependencies() -> BrandIndex | None:
@@ -153,4 +175,73 @@ def check_prescription(request: CheckRequest) -> CheckResponse:
         findings=tuple(_to_response(finding) for finding in findings),
         blocks_dispensing=blocks_dispensing(findings),
         brand_resolution_available=_brand_index is not None,
+    )
+
+
+class ReadRequest(BaseModel):
+    """The OCR text of a prescription, and where it came from."""
+
+    ocr_text: str = Field(min_length=1)
+    source_id: str = Field(min_length=1)
+
+
+class ReadResponse(BaseModel):
+    """What the reading agent read, and what the gate refused.
+
+    `unresolved_count` is separate from `fabrication_count` deliberately. A
+    line the pharmacist must confirm is the resolver working as designed; a
+    line the model invented is not.
+    """
+
+    medications: MedicationList
+    fabrication_count: int
+    unresolved_count: int
+    dropped: tuple[str, ...]
+
+
+@app.post("/v1/prescriptions/read", status_code=status.HTTP_201_CREATED)
+def read_prescription(request: ReadRequest) -> ReadResponse:
+    """Read the medication lines from a prescription.
+
+    Brand resolution needs the index, so this refuses without one rather than
+    returning every line unresolved: a caller who asked to read a prescription
+    and got nothing readable back would reasonably blame the image.
+    """
+    if not _started or _provider is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="service is still starting; the brand index is not loaded yet",
+        )
+    if _brand_index is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                f"brand resolution is unavailable: {BRAND_INDEX_PATH} is not set, so "
+                f"every line would come back unresolved. Set it to a brand index, or "
+                f"post an already-resolved list to /v1/checks"
+            ),
+        )
+    prompt = _prompts.get("reading_agent")
+    if prompt is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="reading_agent prompt is not loaded; check services/rx/prompts/",
+        )
+    try:
+        built = read(
+            _provider,
+            prompt,
+            request.ocr_text,
+            source_id=request.source_id,
+            index=_brand_index,
+        )
+    except PrescriptionTooLongError as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(error)
+        ) from error
+    return ReadResponse(
+        medications=built.medications,
+        fabrication_count=built.fabrication_count,
+        unresolved_count=built.unresolved_count,
+        dropped=tuple(dropped.reason for dropped in built.dropped),
     )

@@ -15,7 +15,15 @@ import pytest
 fastapi = pytest.importorskip("fastapi", reason="API extra not installed")
 from fastapi.testclient import TestClient  # noqa: E402
 
+from services.rx.agents.resolver import Brand, BrandIndex  # noqa: E402
 from services.rx.api import app as api  # noqa: E402
+from spine.inference.adapter import (  # noqa: E402
+    Completion,
+    InferenceProvider,
+    ModelSpec,
+    Transport,
+)
+from spine.inference.prompts import load_all  # noqa: E402
 from spine.schemas.medication import (  # noqa: E402
     MedicationList,
     Molecule,
@@ -195,3 +203,88 @@ class TestBrandIndexConfiguration:
         monkeypatch.setenv(api.BRAND_INDEX_PATH, "does/not/exist.csv")
         with pytest.raises(RuntimeError, match="Unset it to run without"):
             api.build_dependencies()
+
+
+class ScriptedProvider(InferenceProvider):
+    """Answers with fixed text. The resolver and checks run for real."""
+
+    def __init__(self, *responses: str) -> None:
+        self.responses = list(responses) or ['{"lines":[]}']
+        self.seen: list[tuple[str, str]] = []
+
+    @property
+    def transport(self) -> Transport:
+        return Transport.LOCAL
+
+    def is_available(self) -> bool:
+        return True
+
+    def complete(
+        self, *, prompt: str, system: str, spec: ModelSpec, prompt_version: str
+    ) -> Completion:
+        self.seen.append((prompt, system))
+        text = self.responses.pop(0) if len(self.responses) > 1 else self.responses[0]
+        return Completion(
+            text=text,
+            model_version=spec.name,
+            transport=Transport.LOCAL,
+            prompt_version=prompt_version,
+        )
+
+
+OCR = "1. Tab Dolo 650 SOS\n"
+
+INDEX = BrandIndex((Brand(name="Dolo", molecules=("paracetamol",)),))
+
+
+def reading_client(*responses: str, index: BrandIndex | None = INDEX) -> TestClient:
+    """A client wired for the reading endpoint."""
+    api._started = True
+    api._brand_index = index
+    api._provider = ScriptedProvider(*responses)
+    api._prompts = load_all("rx")
+    return TestClient(api.app)
+
+
+def line(span: str, written: str = "Tab Dolo") -> str:
+    return '{"lines":[{"written_as":"' + written + '","source_span":"' + span + '"}]}'
+
+
+class TestReading:
+    def test_a_line_in_the_text_is_read_and_resolved(self) -> None:
+        body = reading_client(line("Tab Dolo 650 SOS")).post(
+            "/v1/prescriptions/read", json={"ocr_text": OCR, "source_id": "rx-1"}
+        ).json()
+        assert len(body["medications"]["medications"]) == 1
+        assert body["fabrication_count"] == 0
+
+    def test_an_invented_line_is_dropped_and_counted(self) -> None:
+        """An invented line would resolve confidently and be checked as real."""
+        body = reading_client(line("Tab Amoxil 500")).post(
+            "/v1/prescriptions/read", json={"ocr_text": OCR, "source_id": "rx-1"}
+        ).json()
+        assert body["medications"]["medications"] == []
+        assert body["fabrication_count"] == 1
+
+    def test_unresolved_is_reported_separately_from_fabrication(self) -> None:
+        body = reading_client(
+            line("Tab Dolo 650 SOS", written="Tab Zyxwv")
+        ).post(
+            "/v1/prescriptions/read", json={"ocr_text": OCR, "source_id": "rx-1"}
+        ).json()
+        assert body["fabrication_count"] == 0
+        assert body["unresolved_count"] == 1
+
+    def test_reading_without_a_brand_index_is_refused(self) -> None:
+        """Every line would come back unresolved and the caller would blame the image."""
+        response = reading_client(line("Tab Dolo 650 SOS"), index=None).post(
+            "/v1/prescriptions/read", json={"ocr_text": OCR, "source_id": "rx-1"}
+        )
+        assert response.status_code == 503
+        assert "brand resolution is unavailable" in response.json()["detail"]
+
+    def test_an_empty_ocr_text_is_rejected(self) -> None:
+        response = reading_client().post(
+            "/v1/prescriptions/read", json={"ocr_text": "", "source_id": "rx-1"}
+        )
+        assert response.status_code == 422

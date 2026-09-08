@@ -18,13 +18,20 @@ may not look at, is worse than refusing to serve it.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Final
 from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
+from services.forensics.agents.structuring_agent import (
+    DictationTooLongError,
+    structure,
+)
 from services.forensics.clinical.custody import (
     CustodyAction,
     CustodyChainError,
@@ -33,12 +40,44 @@ from services.forensics.clinical.custody import (
     was_amended_after_finalisation,
 )
 from spine.audit.events import AuditEvent
+from spine.inference.adapter import InferenceProvider
+from spine.inference.config import InferenceConfig, build_provider, model_spec
+from spine.inference.prompts import (
+    Prompt,
+    assert_clinical_prompts_are_deterministic,
+    load_all,
+)
 from spine.schemas.forensic import ExaminationStatus, MedicoLegalReport
+
+CONVERSATIONAL_AGENTS: Final[frozenset[str]] = frozenset()
+"""Forensics has no conversational agent.
+
+Structuring a dictation is a transcription task, so every prompt here runs at
+temperature 0. Named explicitly so adding one forces the decision.
+"""
+
+_provider: InferenceProvider | None = None
+_prompts: dict[str, Prompt] = {}
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Load the prompts and reach the provider before the first request."""
+    # Module-level state is how startup publishes what it loaded.
+    global _provider, _prompts  # noqa: PLW0603
+    _prompts = load_all("forensics")
+    assert_clinical_prompts_are_deterministic(_prompts, CONVERSATIONAL_AGENTS)
+    config = InferenceConfig.from_environment()
+    _provider = build_provider(config)
+    model_spec(config)
+    yield
+
 
 app = FastAPI(
     title="Nidana Forensics",
     description="Medico-legal documentation. Tamper-evident and evidentially isolated.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 
@@ -248,4 +287,84 @@ def read_chain(examination_id: UUID, request: AccessRequest) -> ChainResponse:
         examination_id=examination_id,
         verified=True,
         entries=tuple(entry.model_dump(mode="json") for entry in examination.chain),
+    )
+
+
+class StructureRequest(BaseModel):
+    """An examiner's dictation, and who dictated it."""
+
+    dictation: str = Field(min_length=1)
+    actor: str = Field(min_length=1)
+
+
+class StructureResponse(BaseModel):
+    """What the structuring agent recorded, and what the gate refused.
+
+    `dropped` is returned rather than logged. An injury the gate refused is one
+    the examiner must record by hand, and a report that silently lost one is
+    the incompleteness this service exists to make visible.
+    """
+
+    report: MedicoLegalReport
+    fabrication_count: int
+    dropped: tuple[str, ...]
+    chain_length: int
+
+
+@app.post("/v1/examinations/{examination_id}/structure")
+def structure_dictation(
+    examination_id: UUID, request: StructureRequest
+) -> StructureResponse:
+    """Structure an examiner's dictation into injuries on the record.
+
+    Amending rather than replacing: the injuries are added under the examiner's
+    own provenance, and the custody chain records who did it and why. A
+    finalised examination is not restructured, because a change after
+    finalisation is an amendment with a stated reason.
+    """
+    examination = _verified(_examination(examination_id))
+    if examination.report.status is ExaminationStatus.FINALISED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"examination {examination_id} is finalised; add findings through "
+                f"POST /v1/examinations/{examination_id}/amend with a stated reason"
+            ),
+        )
+    if _provider is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="service is still starting; prompts are not loaded yet",
+        )
+    prompt = _prompts.get("structuring_agent")
+    if prompt is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "structuring_agent prompt is not loaded; check "
+                "services/forensics/prompts/"
+            ),
+        )
+    try:
+        built = structure(
+            _provider,
+            prompt,
+            request.dictation,
+            str(examination_id),
+            examination.report.examiner_id,
+        )
+    except DictationTooLongError as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(error)
+        ) from error
+
+    examination.report = examination.report.model_copy(
+        update={"injuries": (*examination.report.injuries, *built.injuries)}
+    )
+    _append(examination, CustodyAction.AMENDED, request.actor, reason="Dictation structured")
+    return StructureResponse(
+        report=examination.report,
+        fabrication_count=built.fabrication_count,
+        dropped=tuple(dropped.reason for dropped in built.dropped),
+        chain_length=len(examination.chain),
     )
