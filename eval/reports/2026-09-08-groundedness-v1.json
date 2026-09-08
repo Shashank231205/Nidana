@@ -1,0 +1,30 @@
+{
+  "generated_on": "2026-09-08",
+  "note": "Smoke cases with a scripted model, not a clinician-authored vignette set. These measure that the groundedness gates hold, not that the prompts are clinically correct. No clinical claim follows from these numbers.",
+  "agents": {
+    "extraction_agent": {
+      "cases": 1,
+      "claims": 4,
+      "dropped": 2,
+      "fabrication_rate": 0.5,
+      "recall": 1.0,
+      "unscored_for_recall": 0
+    },
+    "structuring_agent": {
+      "cases": 1,
+      "claims": 2,
+      "dropped": 1,
+      "fabrication_rate": 0.5,
+      "recall": 1.0,
+      "unscored_for_recall": 0
+    },
+    "reading_agent": {
+      "cases": 1,
+      "claims": 3,
+      "dropped": 1,
+      "fabrication_rate": 0.3333,
+      "recall": 1.0,
+      "unscored_for_recall": 0
+    }
+  }
+}
