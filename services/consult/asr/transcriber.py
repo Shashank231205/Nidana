@@ -135,9 +135,14 @@ class WhisperTranscriber(Transcriber):
         model_path: Path = DEFAULT_MODEL_PATH,
         *,
         default_speaker: Speaker = Speaker.PATIENT,
+        device: str = "cpu",
+        compute_type: str = "int8",
     ) -> None:
         self._model_path = model_path
         self._default_speaker = default_speaker
+        self._device = device
+        self._compute_type = compute_type
+        self._model: object | None = None
 
     @property
     def model_version(self) -> str:
@@ -146,12 +151,40 @@ class WhisperTranscriber(Transcriber):
     def is_available(self) -> bool:
         return self._model_path.is_dir()
 
+    def _load(self) -> object:
+        """Load the model, once per process.
+
+        faster-whisper rather than transformers, decided by measurement on
+        target-class hardware: CPU int8, 6 seconds of audio decoded in 2.0s
+        with `base` and 1.1s with `tiny`, against a ~75s one-off load. Both are
+        comfortably inside the gap between a patient finishing an answer and
+        reading the next question, and neither needs the GPU that ADR 0008
+        reserves for the language model.
+        """
+        if self._model is None:
+            try:
+                from faster_whisper import WhisperModel  # noqa: PLC0415
+            except ImportError as error:
+                raise TranscriptionError(
+                    "faster-whisper is not installed; install the asr extra with "
+                    "'pip install -e .[asr]'"
+                ) from error
+            self._model = WhisperModel(
+                str(self._model_path), device=self._device, compute_type=self._compute_type
+            )
+        return self._model
+
     def transcribe(self, audio: AudioInput) -> TranscriptionResult:
         """Transcribe one recording.
 
-        Not implemented. The interface, the shapes, and the startup check are
-        real; the inference call needs the weights, which are downloaded by
-        scripts/download_models.py and are not committed.
+        `word_timestamps` is on because the transcript is segmented on pauses
+        rather than punctuation, and punctuation is unreliable in code-switched
+        speech where a pause is not.
+
+        The language hint is passed through when given and omitted otherwise.
+        Forcing a language on code-switched speech is worse than detecting it:
+        a Hindi hint on "mujhe do din se chest pain hai" can push the model to
+        transliterate the English clinical terms it should be keeping.
         """
         if not audio.path.is_file():
             raise TranscriptionError(
@@ -163,11 +196,28 @@ class WhisperTranscriber(Transcriber):
                 f"'python scripts/download_models.py --asr indicwhisper', then set "
                 f"NIDANA_ASR_MODEL_PATH to where it landed"
             )
-        raise NotImplementedError(
-            "Whisper inference is not wired up. The transcriber interface and its "
-            "shapes are complete; connecting them needs the model weights and a "
-            "decision on the runtime (faster-whisper against transformers), which is a "
-            "latency measurement on target hardware rather than a guess"
+
+        model = self._load()
+        try:
+            raw_segments, info = model.transcribe(  # type: ignore[attr-defined]
+                str(audio.path),
+                language=audio.language_hint,
+                word_timestamps=True,
+                vad_filter=True,
+            )
+            words = _words_from(raw_segments)
+        except TranscriptionError:
+            raise
+        except Exception as error:
+            raise TranscriptionError(
+                f"transcription failed for {audio.path}: {error}. The audio may be "
+                f"empty, truncated, or in a format the decoder cannot read"
+            ) from error
+
+        return TranscriptionResult(
+            transcript=Transcript(segments=segments_from_words(words, self._default_speaker)),
+            model_version=self.model_version,
+            detected_language=getattr(info, "language", None),
         )
 
 
@@ -216,3 +266,31 @@ def _segment(
         audio_end_ms=words[-1][2],
         confidence=min(confidence for _, _, _, confidence in words),
     )
+
+
+def _words_from(raw_segments: object) -> tuple[tuple[str, int, int, float], ...]:
+    """Flatten faster-whisper output into the timed words the segmenter takes.
+
+    Timestamps arrive in seconds and the transcript works in milliseconds, so
+    they are converted here rather than in the segmenter, which stays free of
+    any one backend's conventions.
+
+    A word carrying no probability is treated as certain rather than dropped.
+    Dropping it would silently remove a word from the record; treating it as
+    uncertain would flag a segment for re-asking on a backend quirk.
+    """
+    words: list[tuple[str, int, int, float]] = []
+    for segment in raw_segments:  # type: ignore[attr-defined]
+        for word in getattr(segment, "words", None) or ():
+            text = (word.word or "").strip()
+            if not text:
+                continue
+            words.append(
+                (
+                    text,
+                    int(word.start * 1000),
+                    int(word.end * 1000),
+                    float(getattr(word, "probability", 1.0)),
+                )
+            )
+    return tuple(words)

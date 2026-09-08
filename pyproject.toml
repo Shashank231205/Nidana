@@ -18,6 +18,18 @@ api = [
     "uvicorn[standard]>=0.27",
 ]
 
+# Speech recognition. Separate from the base install because the weights are
+# large and a deployment that only reads typed input does not need them.
+asr = [
+    "faster-whisper>=1.0",
+]
+
+# Building the knowledge index. Build-time only: the clinic's runtime reads the
+# index this produces and never parses a PDF.
+knowledge = [
+    "pypdf>=4.0",
+]
+
 dev = [
     "mypy>=1.9",
     "ruff>=0.3",
@@ -55,6 +67,12 @@ disallow_untyped_defs = true
 # missing dependency rather than a type error, and CI installs it.
 [[tool.mypy.overrides]]
 module = ["fastapi.*", "starlette.*"]
+ignore_missing_imports = true
+
+# faster-whisper and huggingface_hub ship no py.typed marker. Both are optional
+# extras used behind an interface this repo defines and types itself.
+[[tool.mypy.overrides]]
+module = ["faster_whisper.*", "huggingface_hub.*"]
 ignore_missing_imports = true
 
 # FastAPI's route decorators are untyped in some versions. The handlers
