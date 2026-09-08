@@ -97,12 +97,23 @@ detection with the same 100% sensitivity gate as red flags.
 **S5 Forensics.** Examination records, the finalisation gate, and the custody
 chain that logs reads as well as writes.
 
-**Not built.** Terminology lookup, FHIR mapping, identity resolution, ASR,
-both frontends, and the agent runtimes for S2 through S5.
+**All five services have an HTTP surface** and an agent runtime behind it.
+Every agent follows the same shape: the model proposes, a builder verifies each
+claim's span against the source, and anything unsupported is dropped and
+counted rather than hidden.
+
+**Not built.** ASR inference (the interface exists; IndicWhisper needs weights
+and a latency decision), OCR for Rx, both frontends, and the consent capture
+endpoint.
 
 **Blocked, not unbuilt.** Every clinical threshold in the repository is
-unverified and the vignette set is empty. Both need a clinician, not an
+unverified and the vignette sets are empty. Both need a clinician, not an
 engineer. See below.
+
+**What the eval currently measures.** Groundedness only — whether an agent
+claimed something its source does not support. That needs no clinician to
+judge. Clinical correctness needs vignettes that do not exist, so no claim
+about it follows from any number in `prompts/CHANGELOG.md`.
 
 ## Development
 
