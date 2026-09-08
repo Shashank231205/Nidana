@@ -25,7 +25,9 @@ from spine.schemas.medication import (  # noqa: E402
 from spine.schemas.provenance import locate_document  # noqa: E402
 from spine.schemas.record import Allergy, Record, SubjectType  # noqa: E402
 
-PRESCRIPTION_TEXT = "Tab Crocin 500mg BD\nTab Dolo 650mg SOS\nTab Amoxil 500mg TDS"
+PRESCRIPTION_TEXT = (
+    "Tab Crocin 500mg BD\nTab Dolo 650mg SOS\nTab Amoxil 500mg TDS\nTab Unknown"
+)
 
 
 def empty_record(**overrides: object) -> Record:
