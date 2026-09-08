@@ -20,3 +20,9 @@ models/
 *.bin
 
 eval/reports/*.local.json
+
+# Corpus and knowledge index: built by scripts/build_knowledge_index.py, not
+# committed. The PDFs belong to their publishers and the index is a derived
+# artefact that a deployment rebuilds from the registry.
+data/corpus/
+data/knowledge_index.json
