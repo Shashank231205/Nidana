@@ -18,6 +18,7 @@ import argparse
 import json
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Final
 
@@ -81,7 +82,9 @@ def embed(text: str, model: str = EMBEDDING_MODEL) -> tuple[float, ...]:
         return tuple(json.loads(response.read())["embedding"])
 
 
-def build(*, refresh: bool = False, limit: int | None = None) -> KnowledgeIndex:
+def build(
+    *, refresh: bool = False, limit: int | None = None, workers: int = 8
+) -> KnowledgeIndex:
     entries: list[Entry] = []
     for source in REGISTRY:
         print(f"[{source.id}] {source.tier.value}")
@@ -93,12 +96,37 @@ def build(*, refresh: bool = False, limit: int | None = None) -> KnowledgeIndex:
         chunks: tuple[Chunk, ...] = chunk_document(extract(path), source.id)
         if limit is not None:
             chunks = chunks[:limit]
-        print(f"  {len(chunks)} chunks, embedding")
-        for index, chunk in enumerate(chunks, start=1):
-            entries.append(Entry(chunk=chunk, vector=embed(chunk.text)))
-            if index % 100 == 0:
-                print(f"    {index}/{len(chunks)}")
+        print(f"  {len(chunks)} chunks, embedding with {workers} workers")
+        entries.extend(_embed_all(chunks, workers))
     return KnowledgeIndex(tuple(entries))
+
+
+def _embed_all(chunks: tuple[Chunk, ...], workers: int) -> list[Entry]:
+    """Embed a document's chunks concurrently.
+
+    Serially this runs at roughly two seconds a chunk, which is twenty minutes
+    for one volume and long enough that a deployment skips the step. Ollama
+    handles concurrent embedding requests, and the work is IO-bound from here,
+    so a thread pool is the whole fix.
+
+    Results are reordered to match the input: the index stores char offsets and
+    a citation that pointed at the wrong passage would be worse than no
+    citation at all.
+    """
+    done = 0
+    ordered: list[Entry | None] = [None] * len(chunks)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {
+            pool.submit(embed, chunk.text): position
+            for position, chunk in enumerate(chunks)
+        }
+        for future in as_completed(futures):
+            position = futures[future]
+            ordered[position] = Entry(chunk=chunks[position], vector=future.result())
+            done += 1
+            if done % 100 == 0:
+                print(f"    {done}/{len(chunks)}")
+    return [entry for entry in ordered if entry is not None]
 
 
 def main() -> int:
@@ -107,9 +135,14 @@ def main() -> int:
     parser.add_argument(
         "--limit", type=int, default=None, help="chunks per source, for a smoke build"
     )
+    parser.add_argument(
+        "--workers", type=int, default=8, help="concurrent embedding requests"
+    )
     arguments = parser.parse_args()
 
-    index = build(refresh=arguments.refresh, limit=arguments.limit)
+    index = build(
+        refresh=arguments.refresh, limit=arguments.limit, workers=arguments.workers
+    )
     if not len(index):
         print("No chunks indexed. Nothing written.")
         return 1
