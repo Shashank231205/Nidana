@@ -171,8 +171,9 @@ class TestBrandIndexLoading:
         line = resolve_line("Glycomet-GP", index, region())
         assert len(line.molecules) == 2
 
-    def test_a_missing_file_names_the_unresolved_dependency(self, tmp_path: Path) -> None:
-        with pytest.raises(BrandIndexError, match="not publicly maintained"):
+    def test_a_missing_file_names_the_command_that_builds_one(self, tmp_path: Path) -> None:
+        """The index is derived, not shipped, so a deployment can rebuild it."""
+        with pytest.raises(BrandIndexError, match="build_brand_index.py"):
             load_brand_index(tmp_path / "absent.csv")
 
     def test_a_missing_column_is_reported(self, tmp_path: Path) -> None:

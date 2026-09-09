@@ -13,6 +13,7 @@ confident wrong molecule they do not question.
 from __future__ import annotations
 
 import csv
+import re
 import unicodedata
 from dataclasses import dataclass
 from difflib import SequenceMatcher
@@ -68,19 +69,50 @@ class Brand:
             raise BrandIndexError(f"brand {self.name!r} lists no molecules")
 
 
+FORM_WORDS: Final[frozenset[str]] = frozenset(
+    {
+        "mg", "ml", "mcg", "gm", "g", "iu",
+        "tab", "tabs", "tablet", "tablets",
+        "cap", "caps", "capsule", "capsules",
+        "syp", "syrup", "susp", "suspension", "solution", "soln",
+        "inj", "injection", "drops", "drop",
+        "cream", "ointment", "gel", "lotion", "powder", "sachet",
+        "kit", "spray", "duo", "forte", "plus", "xr", "sr", "cr", "od",
+    }
+)
+"""Words that name a form or pack rather than a brand.
+
+'Augmentin 625 Duo Tablet' and 'Augmentin' are the same brand, and a
+prescription writes whichever the prescriber had in mind. Stripping these is
+what lets an exact match succeed; without it the written name falls through to
+the fuzzy path and is refused for want of a word the pharmacist did not intend
+as part of the name.
+
+Strengths are stripped separately because they are digits, and a strength that
+distinguishes two products is carried in its own column rather than in the key.
+"""
+
+STRENGTH_TOKEN: Final[re.Pattern[str]] = re.compile(r"^\d+(?:\.\d+)?(?:mg|ml|mcg|gm|g|iu)?$")
+
+
 def normalise_brand(text: str) -> str:
     """Reduce a written brand name for comparison.
 
     Strength and form are stripped: 'Glycomet 500 tab' and 'Glycomet' are the
     same brand, and the strength is captured separately rather than treated as
     part of the name.
+
+    This function is the single definition of a brand key. scripts/
+    build_brand_index.py imports it rather than reimplementing it: two
+    normalisers that disagree produce an index whose keys the resolver cannot
+    look up, which fails as a refusal rather than as an error.
     """
     decomposed = unicodedata.normalize("NFKC", text).lower()
     kept = "".join(c if c.isalnum() or c.isspace() else " " for c in decomposed)
     tokens = [
         token
         for token in kept.split()
-        if not token.isdigit() and token not in {"mg", "ml", "tab", "tabs", "cap", "caps", "syp"}
+        if not STRENGTH_TOKEN.match(token) and token not in FORM_WORDS
     ]
     return " ".join(tokens)
 
@@ -103,6 +135,8 @@ class BrandIndex:
     def __init__(self, brands: tuple[Brand, ...] = ()) -> None:
         self._brands = brands
         self._exact: dict[str, Brand] = {}
+        self._keys: dict[str, str] = {}
+        self._blocks: dict[str, list[str]] = {}
         for brand in brands:
             key = normalise_brand(brand.name)
             if key in self._exact:
@@ -111,22 +145,60 @@ class BrandIndex:
                     f"silently ignored"
                 )
             self._exact[key] = brand
+            self._keys[key] = key
+            if key:
+                self._blocks.setdefault(key[0], []).append(key)
 
     def __len__(self) -> int:
         return len(self._brands)
 
+    def _candidate_keys(self, target: str) -> list[str]:
+        """The keys worth scoring against `target`.
+
+        SequenceMatcher over every brand is O(n) in the index, which at the
+        size of the real Indian index (~186,000 brands) costs seconds per
+        unmatched line. A prescription with five unreadable lines would take
+        twenty.
+
+        Two blocks cut it without weakening the match. A ratio of at least
+        RESOLUTION_FLOOR is arithmetically impossible unless the lengths are
+        within a bounded factor, since the ratio is 2M/T and M cannot exceed
+        the shorter length. And a first letter is what OCR is most likely to
+        read correctly — it is the character with the most whitespace around
+        it. Both are conservative: they exclude only candidates that could not
+        have cleared the floor anyway.
+        """
+        span = len(target)
+        # 2*min/(a+b) >= floor  =>  longer <= shorter * (2 - floor) / floor
+        widest = max(1, int(span * (2 - RESOLUTION_FLOOR) / RESOLUTION_FLOOR) + 1)
+        narrowest = max(1, int(span * RESOLUTION_FLOOR / (2 - RESOLUTION_FLOOR)))
+        return [
+            key
+            for key in self._blocks.get(target[0], ())
+            if narrowest <= len(key) <= widest
+        ]
+
     def score_all(self, written: str) -> tuple[Scored, ...]:
-        """Every brand, scored against `written`, best first."""
+        """The plausible brands, scored against `written`, best first.
+
+        Candidates that could not reach RESOLUTION_FLOOR are not scored; see
+        _candidate_keys. The result is the same as scoring every brand and
+        discarding those below the floor, which is all any caller uses.
+        """
         target = normalise_brand(written)
         if not target:
             return ()
-        scored = [
-            Scored(
-                brand=brand,
-                score=SequenceMatcher(None, target, normalise_brand(brand.name)).ratio(),
-            )
-            for brand in self._brands
-        ]
+        matcher = SequenceMatcher()
+        matcher.set_seq2(target)
+        scored = []
+        for key in self._candidate_keys(target):
+            matcher.set_seq1(key)
+            # Two cheap upper bounds before the quadratic comparison.
+            if matcher.real_quick_ratio() < RESOLUTION_FLOOR:
+                continue
+            if matcher.quick_ratio() < RESOLUTION_FLOOR:
+                continue
+            scored.append(Scored(brand=self._exact[key], score=matcher.ratio()))
         return tuple(sorted(scored, key=lambda s: s.score, reverse=True))
 
     def resolve(self, written: str) -> tuple[ResolutionStatus, tuple[Scored, ...]]:
@@ -221,9 +293,9 @@ def load_brand_index(path: Path) -> BrandIndex:
     """
     if not path.is_file():
         raise BrandIndexError(
-            f"no brand index at {path}. The Indian brand-to-molecule mapping is not "
-            f"publicly maintained in usable form and is listed as an unresolved "
-            f"dependency in docs/BUILD_SPEC.md section 8"
+            f"no brand index at {path}. Build one with "
+            f"'python scripts/build_brand_index.py --source <dataset> --out {path}'; "
+            f"that script names the open dataset it reads and where to download it"
         )
     brands: list[Brand] = []
     with path.open(encoding="utf-8", newline="") as handle:
