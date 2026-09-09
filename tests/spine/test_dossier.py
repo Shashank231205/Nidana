@@ -65,6 +65,7 @@ def rule(
         source="PLACEHOLDER pending clinician review.",
         verify_before_ship=verify,
         verified_on=None if verify else date(2026, 1, 1),
+        verified_by=None if verify else "Dr Test Reviewer",
         notes=notes,
     )
 

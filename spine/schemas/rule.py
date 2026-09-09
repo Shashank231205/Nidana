@@ -13,6 +13,7 @@ invisible to every gate except a positive vignette that happens to target it.
 from __future__ import annotations
 
 from datetime import date
+from enum import Enum
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -60,6 +61,50 @@ class Modifiers(BaseModel):
         return self.escalate_if
 
 
+class VerificationState(str, Enum):
+    """How far a rule has got toward being safe to ship.
+
+    UNREVIEWED and AI_REVIEWED both block a release. The distinction between
+    them is for the humans doing the work — it says whether the reading has
+    been done — and never for the gate.
+    """
+
+    UNREVIEWED = "unreviewed"
+    AI_REVIEWED = "ai_reviewed"
+    CLINICIAN_VERIFIED = "clinician_verified"
+
+
+class AiReview(BaseModel):
+    """What an AI panel concluded, and who still has to sign.
+
+    Deliberately carries no field that could be read as approval. There is no
+    verdict, no score and no recommendation to ship: a reviewer reads the
+    concerns and decides. `refer_to` names the specialty the panel thinks
+    should look at it, which is the most useful thing it can offer.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    reviewed_on: date
+    models: tuple[str, ...] = Field(min_length=1)
+    panel_version: str = Field(min_length=1)
+    concerns: tuple[str, ...] = ()
+    refer_to: str = Field(
+        min_length=1,
+        description="The kind of clinician who should review this rule",
+    )
+    dossier_path: str | None = None
+
+    @property
+    def clears_release(self) -> bool:
+        """Always false. An AI review is not a signature.
+
+        Stated as a property so that any code tempted to treat a review as
+        clearance has to read the word false.
+        """
+        return False
+
+
 class Rule(BaseModel, Generic[ActionT]):
     """One declarative rule, generic over its service's action vocabulary.
 
@@ -84,9 +129,17 @@ class Rule(BaseModel, Generic[ActionT]):
         default=None,
         description="When a qualified clinician last verified this against the source",
     )
+    verified_by: str | None = Field(
+        default=None,
+        description="The named clinician who accepted responsibility for this criterion",
+    )
     verify_before_ship: bool = Field(
         default=True,
         description="True until a clinician has signed the criterion off",
+    )
+    review: AiReview | None = Field(
+        default=None,
+        description="An AI panel review, which refers the rule to a clinician",
     )
     notes: str | None = None
 
@@ -97,6 +150,12 @@ class Rule(BaseModel, Generic[ActionT]):
                 f"rule {self.id} is marked verified but carries no verified_on date; "
                 f"record when a clinician signed the criterion off, or leave "
                 f"verify_before_ship true"
+            )
+        if not self.verify_before_ship and not (self.verified_by or "").strip():
+            raise ValueError(
+                f"rule {self.id} is marked verified but names no clinician. "
+                f"verify_before_ship false means a named, qualified person accepted "
+                f"responsibility for this criterion; record who in verified_by"
             )
         return self
 
@@ -109,6 +168,33 @@ class Rule(BaseModel, Generic[ActionT]):
 
     @property
     def is_unverified(self) -> bool:
+        return self.verify_before_ship
+
+    @property
+    def state(self) -> VerificationState:
+        """Where this rule sits between untouched and signed off.
+
+        Three states rather than two, because "an AI panel reviewed this and
+        refers it to a clinician" is a real and useful thing to have recorded,
+        and it is not verification. Collapsing it into either neighbour loses
+        information: into UNREVIEWED and the review looks undone, into
+        CLINICIAN_VERIFIED and the audit trail claims a doctor approved
+        something no doctor read.
+        """
+        if not self.verify_before_ship:
+            return VerificationState.CLINICIAN_VERIFIED
+        if self.review is not None:
+            return VerificationState.AI_REVIEWED
+        return VerificationState.UNREVIEWED
+
+    @property
+    def blocks_release(self) -> bool:
+        """Whether this rule stops a production build.
+
+        AI_REVIEWED blocks exactly as UNREVIEWED does. The panel shortens a
+        clinician's work; it does not stand in for their signature, and a
+        release gate that accepted it would be a gate on nothing.
+        """
         return self.verify_before_ship
 
 

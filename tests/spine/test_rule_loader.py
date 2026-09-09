@@ -8,9 +8,11 @@ verify_before_ship.
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from services.consult.clinical.actions import RedFlagAction
 from spine.rules.predicate_loader import load_predicates
@@ -25,6 +27,7 @@ from spine.rules.rule_loader import (
     rules_dir,
 )
 from spine.schemas.predicate import Comparator, Predicate
+from spine.schemas.rule import AiReview, Clause, Rule, VerificationState
 
 UNVERIFIED_SET = """
 name: test_rules
@@ -53,6 +56,7 @@ rules:
     action: ANNOTATE
     source: Product scope decision.
     verified_on: 2026-09-06
+    verified_by: Dr Test Reviewer
     verify_before_ship: false
 """
 
@@ -222,3 +226,84 @@ class TestShippedRules:
 
     def test_rules_dir_points_into_the_named_service(self) -> None:
         assert rules_dir("consult", "red_flags").parts[-3:] == ("consult", "rules", "red_flags")
+
+
+class TestTheThreeVerificationStates:
+    """Unreviewed, AI-reviewed, clinician-verified.
+
+    The middle state exists because "a panel of models read this rule and
+    refers it to a clinician" is a real thing that happened and is worth
+    recording. It is not verification, and the tests here pin both halves of
+    that: it is visible as progress, and it opens nothing.
+    """
+
+    def rule(
+        self,
+        *,
+        verified: bool = False,
+        review: AiReview | None = None,
+    ) -> Rule[RedFlagAction]:
+        return Rule[RedFlagAction](
+            id="RF_TEST_001",
+            label="Test rule",
+            any_of=(Clause(all_of=("chest_pain_present",)),),
+            action=RedFlagAction.TERMINATE_EMERGENCY,
+            source="PLACEHOLDER",
+            verify_before_ship=not verified,
+            verified_on=date(2026, 1, 1) if verified else None,
+            verified_by="Dr A Reviewer" if verified else None,
+            review=review,
+        )
+
+    def review(self) -> AiReview:
+        return AiReview(
+            reviewed_on=date(2026, 9, 9),
+            models=("granite4.1:3b",),
+            panel_version="1.0.0",
+            concerns=("Every branch requires chest pain.",),
+            refer_to="emergency physician",
+        )
+
+    def test_an_untouched_rule_is_unreviewed(self) -> None:
+        assert self.rule().state is VerificationState.UNREVIEWED
+
+    def test_a_reviewed_rule_says_so(self) -> None:
+        assert self.rule(review=self.review()).state is VerificationState.AI_REVIEWED
+
+    def test_a_signed_rule_is_clinician_verified(self) -> None:
+        assert self.rule(verified=True).state is VerificationState.CLINICIAN_VERIFIED
+
+    def test_an_ai_review_does_not_clear_a_release(self) -> None:
+        """The point of the middle state. A gate that accepted it gates nothing."""
+        assert self.rule(review=self.review()).blocks_release
+
+    def test_an_ai_review_carries_no_verdict_field(self) -> None:
+        """There is nothing on it a caller could mistake for approval."""
+        assert not self.review().clears_release
+
+    def test_a_review_names_who_should_look_at_it(self) -> None:
+        """The most useful thing a panel can offer is the right specialist."""
+        assert self.review().refer_to == "emergency physician"
+
+    def test_a_clinician_verified_rule_must_name_the_clinician(self) -> None:
+        """verify_before_ship false asserts a person accepted responsibility.
+
+        Without a name the audit trail says a doctor approved this and cannot
+        say which, which is worse than saying nobody has.
+        """
+        with pytest.raises(ValidationError, match="names no clinician"):
+            Rule[RedFlagAction](
+                id="RF_TEST_002",
+                label="Test",
+                any_of=(Clause(all_of=("chest_pain_present",)),),
+                action=RedFlagAction.TERMINATE_EMERGENCY,
+                source="s",
+                verify_before_ship=False,
+                verified_on=date(2026, 1, 1),
+            )
+
+    def test_a_reviewed_rule_can_later_be_verified(self) -> None:
+        """The review survives the signature; it is how the work is traceable."""
+        signed = self.rule(verified=True, review=self.review())
+        assert signed.state is VerificationState.CLINICIAN_VERIFIED
+        assert signed.review is not None

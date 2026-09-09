@@ -68,6 +68,10 @@ rules:
       the automated path because the danger-sign profile differs enough to
       warrant its own build. This rule routes to a human rather than triaging.
     verified_on: 2026-09-06
+    verified_by: >-
+      Repository owner, as a product scope decision. This is the one rule here
+      that needs no clinical sign-off, because it routes to a human rather than
+      triaging: it encodes what this system declines to do.
     verify_before_ship: false
     notes: >-
       The only rule here that is not awaiting clinical verification, because it
