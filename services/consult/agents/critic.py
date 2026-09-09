@@ -20,8 +20,8 @@ from services.consult.clinical.bands import (
     RaiseTo,
     apply_verdict,
 )
-from spine.inference.adapter import InferenceProvider, ModelSpec, complete_structured
-from spine.inference.prompts import Prompt
+from spine.inference.adapter import InferenceProvider, complete_structured
+from spine.inference.prompts import Prompt, spec_for
 from spine.schemas.primitives import Band
 from spine.schemas.record import Record
 from spine.schemas.triage import RedFlagOutcome, TriageResult
@@ -140,16 +140,14 @@ def build_prompt(record: Record, result: TriageResult, red_flags: RedFlagOutcome
 def critique(
     provider: InferenceProvider,
     prompt: Prompt,
+    model: str,
+    *,
     record: Record,
     result: TriageResult,
     red_flags: RedFlagOutcome,
 ) -> CriticReview:
     """Run the critic over a triage result."""
-    spec = ModelSpec(
-        name=prompt.model_class,
-        temperature=prompt.temperature,
-        max_output_tokens=prompt.max_output_tokens,
-    )
+    spec = spec_for(prompt, model)
     named: CriticVerdictName = complete_structured(
         provider,
         CriticVerdictName,

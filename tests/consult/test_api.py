@@ -75,6 +75,7 @@ def dependencies_with(provider: InferenceProvider) -> Dependencies:
     return Dependencies(
         provider=provider,
         prompts=load_all("consult"),
+        model="test-model",
         registries=load_registries(),
         predicates=load_predicates(),
         rule_sets=load_rule_sets(rules_dir("consult", "red_flags"), RedFlagAction),

@@ -51,12 +51,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """
     # Module-level state is how startup publishes what it loaded. Request
     # handlers read it; nothing else writes it.
-    global _brand_index, _provider, _prompts, _started  # noqa: PLW0603
+    global _brand_index, _provider, _prompts, _started, _model  # noqa: PLW0603
     _brand_index = build_dependencies()
     _prompts = load_all("rx")
     assert_clinical_prompts_are_deterministic(_prompts, CONVERSATIONAL_AGENTS)
     config = InferenceConfig.from_environment()
     _provider = build_provider(config)
+    _model = config.primary_model
     model_spec(config)
     _started = True
     yield
@@ -71,6 +72,7 @@ app = FastAPI(
 
 _brand_index: BrandIndex | None = None
 _provider: InferenceProvider | None = None
+_model: str = ""
 _prompts: dict[str, Prompt] = {}
 _started = False
 
@@ -231,6 +233,7 @@ def read_prescription(request: ReadRequest) -> ReadResponse:
         built = read(
             _provider,
             prompt,
+            _model,
             request.ocr_text,
             source_id=request.source_id,
             index=_brand_index,

@@ -11,8 +11,8 @@ nothing that does not parse as a number reaches it at all.
 from __future__ import annotations
 
 from services.labs.agents.result_builder import BuildResult, build
-from spine.inference.adapter import InferenceProvider, ModelSpec, complete_structured
-from spine.inference.prompts import Prompt
+from spine.inference.adapter import InferenceProvider, complete_structured
+from spine.inference.prompts import Prompt, spec_for
 from spine.schemas.lab import ReportDraft
 
 MAX_REPORT_CHARACTERS = 16_000
@@ -46,6 +46,7 @@ def build_prompt(report_text: str) -> str:
 def extract(
     provider: InferenceProvider,
     prompt: Prompt,
+    model: str,
     report_text: str,
     source_id: str,
 ) -> BuildResult:
@@ -62,11 +63,7 @@ def extract(
             f"extract each; truncating would drop whichever analytes the lab "
             f"happens to print last"
         )
-    spec = ModelSpec(
-        name=prompt.model_class,
-        temperature=prompt.temperature,
-        max_output_tokens=prompt.max_output_tokens,
-    )
+    spec = spec_for(prompt, model)
     draft: ReportDraft = complete_structured(
         provider,
         ReportDraft,

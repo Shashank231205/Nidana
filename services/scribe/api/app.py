@@ -83,6 +83,7 @@ app = FastAPI(
 class Dependencies:
     provider: InferenceProvider
     prompts: dict[str, Prompt]
+    model: str
     predicates: dict[str, Predicate]
     rule_sets: tuple[RuleSet[NoteCheckAction], ...]
 
@@ -131,6 +132,7 @@ def build_dependencies() -> Dependencies:
     return Dependencies(
         provider=provider,
         prompts=prompts,
+        model=config.primary_model,
         predicates=predicates,
         rule_sets=rule_sets,
     )
@@ -252,7 +254,11 @@ def draft(encounter_id: UUID, request: DraftRequest) -> NoteResponse:
 
     try:
         result = draft_note(
-            dependencies.provider, prompt, request.transcript, str(encounter_id)
+            dependencies.provider,
+            prompt,
+            dependencies.model,
+            request.transcript,
+            str(encounter_id),
         )
     except TranscriptTooLongError as error:
         raise HTTPException(

@@ -58,6 +58,7 @@ def dependencies(*responses: str) -> api.Dependencies:
         thresholds=load_thresholds(),
         provider=ScriptedProvider(*responses),
         prompts=load_all("labs"),
+        model="test-model",
     )
 
 

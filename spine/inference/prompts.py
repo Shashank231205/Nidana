@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
+from spine.inference.adapter import ModelSpec
+
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[2]
 
 _HEADER_BLOCK: Final[re.Pattern[str]] = re.compile(r"^#[^\n]*\n+```\n(.*?)\n```", re.DOTALL)
@@ -169,3 +171,34 @@ def assert_clinical_prompts_are_deterministic(
             f"Set temperature to 0 in the prompt header, or add the agent to the "
             f"conversational set if its job is phrasing rather than reasoning"
         )
+
+
+def spec_for(prompt: Prompt, model: str) -> ModelSpec:
+    """The model to call for one agent: name from the caller, tuning from the prompt.
+
+    These come from different places for a reason, and conflating them was a
+    live bug in every agent in this repository. `prompt.model_class` documents
+    what *class* of model an agent needs — "local instruct, 7-8B quantised" —
+    which is guidance for whoever deploys this. It is not a model name. Passed
+    to Ollama it returns HTTP 400, so no agent could reach a model at all.
+
+    The tests did not catch it because they mock the provider, which is the
+    right thing for them to test. Only calling a real model finds this, which
+    is why the eval harness now does.
+
+    `model` is the deployment's choice and arrives from InferenceConfig.
+    Temperature and token budget belong to the prompt: they are properties of
+    the task rather than of the installation, and a clinical prompt that must
+    run deterministic says so in its own header.
+    """
+    if not model.strip():
+        raise PromptLoadError(
+            f"no model name given for {prompt.name}. Pass the configured model from "
+            f"InferenceConfig; prompt.model_class describes the class of model this "
+            f"agent needs and is not a name Ollama will accept"
+        )
+    return ModelSpec(
+        name=model,
+        temperature=prompt.temperature,
+        max_output_tokens=prompt.max_output_tokens,
+    )

@@ -243,6 +243,7 @@ def reading_client(*responses: str, index: BrandIndex | None = INDEX) -> TestCli
     api._brand_index = index
     api._provider = ScriptedProvider(*responses)
     api._prompts = load_all("rx")
+    api._model = "test-model"
     return TestClient(api.app)
 
 

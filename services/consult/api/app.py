@@ -115,6 +115,7 @@ def build_dependencies() -> Dependencies:
     return Dependencies(
         provider=provider,
         prompts=prompts,
+        model=config.primary_model,
         registries=registries,
         predicates=predicates,
         rule_sets=rule_sets,

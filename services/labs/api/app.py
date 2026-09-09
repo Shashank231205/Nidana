@@ -54,6 +54,7 @@ class Dependencies:
     thresholds: dict[str, CriticalThreshold]
     provider: InferenceProvider
     prompts: dict[str, Prompt]
+    model: str
 
 
 @asynccontextmanager
@@ -104,7 +105,12 @@ def build_dependencies() -> Dependencies:
     provider = build_provider(config)
     model_spec(config)
 
-    return Dependencies(thresholds=thresholds, provider=provider, prompts=prompts)
+    return Dependencies(
+        thresholds=thresholds,
+        provider=provider,
+        prompts=prompts,
+        model=config.primary_model,
+    )
 
 
 
@@ -224,7 +230,11 @@ def extract_report(request: ExtractRequest) -> ExtractResponse:
         )
     try:
         built = extract(
-            dependencies.provider, prompt, request.report_text, request.source_id
+            dependencies.provider,
+            prompt,
+            dependencies.model,
+            request.report_text,
+            request.source_id,
         )
     except ReportTooLongError as error:
         raise HTTPException(

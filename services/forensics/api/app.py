@@ -58,6 +58,7 @@ temperature 0. Named explicitly so adding one forces the decision.
 """
 
 _provider: InferenceProvider | None = None
+_model: str = ""
 _prompts: dict[str, Prompt] = {}
 
 
@@ -65,11 +66,12 @@ _prompts: dict[str, Prompt] = {}
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """Load the prompts and reach the provider before the first request."""
     # Module-level state is how startup publishes what it loaded.
-    global _provider, _prompts  # noqa: PLW0603
+    global _provider, _prompts, _model  # noqa: PLW0603
     _prompts = load_all("forensics")
     assert_clinical_prompts_are_deterministic(_prompts, CONVERSATIONAL_AGENTS)
     config = InferenceConfig.from_environment()
     _provider = build_provider(config)
+    _model = config.primary_model
     model_spec(config)
     yield
 
@@ -350,9 +352,10 @@ def structure_dictation(
         built = structure(
             _provider,
             prompt,
-            request.dictation,
-            str(examination_id),
-            examination.report.examiner_id,
+            _model,
+            dictation=request.dictation,
+            source_id=str(examination_id),
+            examiner_id=examination.report.examiner_id,
         )
     except DictationTooLongError as error:
         raise HTTPException(

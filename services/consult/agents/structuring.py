@@ -16,8 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from services.consult.agents.schemas import ExtractedFinding, StructuringOutput
-from spine.inference.adapter import InferenceProvider, ModelSpec, complete_structured
-from spine.inference.prompts import Prompt
+from spine.inference.adapter import InferenceProvider, complete_structured
+from spine.inference.prompts import Prompt, spec_for
 from spine.schemas.finding import Finding
 from spine.schemas.primitives import Quantity
 from spine.schemas.provenance import SpanVerificationError, locate_utterance
@@ -164,6 +164,7 @@ def build_prompt(utterance: str, registry: FamilyRegistry, turn_index: int) -> s
 def structure(
     provider: InferenceProvider,
     prompt: Prompt,
+    model: str,
     *,
     utterance: str,
     registry: FamilyRegistry,
@@ -176,11 +177,7 @@ def structure(
     adapter. Everything it claims then passes through validate_claims, which is
     where the span invariant is enforced.
     """
-    spec = ModelSpec(
-        name=prompt.model_class,
-        temperature=prompt.temperature,
-        max_output_tokens=prompt.max_output_tokens,
-    )
+    spec = spec_for(prompt, model)
     output: StructuringOutput = complete_structured(
         provider,
         StructuringOutput,

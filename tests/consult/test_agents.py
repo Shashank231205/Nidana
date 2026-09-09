@@ -70,13 +70,20 @@ def session(band_context: ComplaintFamily = ComplaintFamily.CHEST_PAIN) -> Recor
 class TestPromptLoading:
     """Prompts are files, versioned in git, never string literals."""
 
-    def test_all_four_consult_prompts_load(self) -> None:
+    def test_every_consult_prompt_loads(self) -> None:
+        """rule_critic is a design-time reviewer, not part of a session.
+
+        It is listed here because load_all reads the directory, and a prompt
+        that stopped loading should fail a test rather than fail at the first
+        model call.
+        """
         prompts = load_all("consult")
         assert set(prompts) == {
             "intake_agent",
             "structuring_agent",
             "triage_agent",
             "safety_critic",
+            "rule_critic",
         }
 
     def test_each_prompt_carries_a_version(self) -> None:

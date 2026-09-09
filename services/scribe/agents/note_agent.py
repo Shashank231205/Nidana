@@ -10,8 +10,8 @@ note without its span being found character-for-character in what was recorded.
 from __future__ import annotations
 
 from services.scribe.agents.note_builder import BuildResult, build
-from spine.inference.adapter import InferenceProvider, ModelSpec, complete_structured
-from spine.inference.prompts import Prompt
+from spine.inference.adapter import InferenceProvider, complete_structured
+from spine.inference.prompts import Prompt, spec_for
 from spine.schemas.transcript import NoteDraft, Transcript
 
 MAX_TRANSCRIPT_CHARACTERS = 24_000
@@ -45,6 +45,7 @@ def build_prompt(transcript: Transcript) -> str:
 def draft_note(
     provider: InferenceProvider,
     prompt: Prompt,
+    model: str,
     transcript: Transcript,
     source_id: str,
 ) -> BuildResult:
@@ -61,11 +62,7 @@ def draft_note(
             f"that fit in one call. Segment the consultation and draft each part; "
             f"truncating would drop the end, where the plan and follow-up are"
         )
-    spec = ModelSpec(
-        name=prompt.model_class,
-        temperature=prompt.temperature,
-        max_output_tokens=prompt.max_output_tokens,
-    )
+    spec = spec_for(prompt, model)
     draft: NoteDraft = complete_structured(
         provider,
         NoteDraft,

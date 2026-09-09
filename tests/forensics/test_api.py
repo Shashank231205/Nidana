@@ -255,6 +255,7 @@ def structuring_client(*responses: str) -> TestClient:
     api._examinations.clear()
     api._provider = ScriptedProvider(*responses)
     api._prompts = load_all("forensics")
+    api._model = "test-model"
     return TestClient(api.app)
 
 

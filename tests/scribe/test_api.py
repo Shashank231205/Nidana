@@ -100,6 +100,7 @@ def dependencies(*responses: str) -> api.Dependencies:
     return api.Dependencies(
         provider=ScriptedProvider(*responses),
         prompts=load_all("scribe"),
+        model="test-model",
         predicates=predicates,
         rule_sets=load_rule_sets(
             rules_dir("scribe", "completeness"), NoteCheckAction

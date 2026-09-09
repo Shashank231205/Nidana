@@ -11,8 +11,8 @@ structured, so the model can shape a record but never author one.
 from __future__ import annotations
 
 from services.forensics.agents.injury_builder import BuildResult, build
-from spine.inference.adapter import InferenceProvider, ModelSpec, complete_structured
-from spine.inference.prompts import Prompt
+from spine.inference.adapter import InferenceProvider, complete_structured
+from spine.inference.prompts import Prompt, spec_for
 from spine.schemas.forensic import ExaminationDraft
 
 MAX_DICTATION_CHARACTERS = 12_000
@@ -44,6 +44,8 @@ def build_prompt(dictation: str) -> str:
 def structure(
     provider: InferenceProvider,
     prompt: Prompt,
+    model: str,
+    *,
     dictation: str,
     source_id: str,
     examiner_id: str,
@@ -60,11 +62,7 @@ def structure(
             f"{MAX_DICTATION_CHARACTERS} that fit in one call. Structure it in "
             f"parts; truncating would drop whichever injuries were described last"
         )
-    spec = ModelSpec(
-        name=prompt.model_class,
-        temperature=prompt.temperature,
-        max_output_tokens=prompt.max_output_tokens,
-    )
+    spec = spec_for(prompt, model)
     draft: ExaminationDraft = complete_structured(
         provider,
         ExaminationDraft,

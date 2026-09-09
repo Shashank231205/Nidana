@@ -60,6 +60,14 @@ class Dependencies:
 
     provider: InferenceProvider
     prompts: dict[str, Prompt]
+    model: str
+    """The model name to call, from InferenceConfig.
+
+    Carried here rather than read from the prompt header: model_class in a
+    prompt describes the class of model the agent needs and is not a name any
+    runtime accepts.
+    """
+
     registries: dict[ComplaintFamily, FamilyRegistry]
     predicates: dict[str, Predicate]
     rule_sets: tuple[RuleSet[RedFlagAction], ...]
@@ -173,6 +181,7 @@ def submit_turn(
         structured = structuring.structure(
             dependencies.provider,
             dependencies.prompts["structuring_agent"],
+            dependencies.model,
             utterance=utterance,
             registry=registry,
             source_id=source_id,
@@ -220,6 +229,7 @@ def submit_turn(
     question = intake.next_question(
         dependencies.provider,
         prompt,
+        dependencies.model,
         record=session.record,
         registry=registry,
         sufficiency=sufficiency,
@@ -270,7 +280,12 @@ def complete(
 
     triage_prompt = dependencies.prompts["triage_agent"]
     result = triage.assess(
-        dependencies.provider, triage_prompt, session.record, sufficiency, outcome
+        dependencies.provider,
+        triage_prompt,
+        dependencies.model,
+        record=session.record,
+        sufficiency=sufficiency,
+        red_flags=outcome,
     )
     session.log(
         EventType.BAND_ASSIGNED,
@@ -282,7 +297,12 @@ def complete(
 
     critic_prompt = dependencies.prompts["safety_critic"]
     review = critic.critique(
-        dependencies.provider, critic_prompt, session.record, result, outcome
+        dependencies.provider,
+        critic_prompt,
+        dependencies.model,
+        record=session.record,
+        result=result,
+        red_flags=outcome,
     )
     if review.escalated:
         result = result.model_copy(

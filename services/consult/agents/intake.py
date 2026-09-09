@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from services.consult.agents.schemas import IntakeOutput
 from services.consult.clinical.output_filter import assert_clean
-from spine.inference.adapter import InferenceProvider, ModelSpec, complete_structured
-from spine.inference.prompts import Prompt
+from spine.inference.adapter import InferenceProvider, complete_structured
+from spine.inference.prompts import Prompt, spec_for
 from spine.schemas.record import Record, Sufficiency
 from spine.schemas.registry import FamilyRegistry
 
@@ -67,6 +67,7 @@ def build_prompt(
 def next_question(
     provider: InferenceProvider,
     prompt: Prompt,
+    model: str,
     *,
     record: Record,
     registry: FamilyRegistry | None,
@@ -79,11 +80,7 @@ def next_question(
     intake agent is patient-facing, so a condition name in its question is a
     leak, and the filter refuses rather than redacts.
     """
-    spec = ModelSpec(
-        name=prompt.model_class,
-        temperature=prompt.temperature,
-        max_output_tokens=prompt.max_output_tokens,
-    )
+    spec = spec_for(prompt, model)
     output: IntakeOutput = complete_structured(
         provider,
         IntakeOutput,
