@@ -24,6 +24,13 @@ from pydantic import BaseModel, Field
 from services.rx.agents.reading_agent import PrescriptionTooLongError, read
 from services.rx.agents.resolver import BrandIndex, BrandIndexError, load_brand_index
 from services.rx.clinical.checks import Finding, blocks_dispensing, run_all
+from services.rx.clinical.interactions import (
+    InteractionIndex,
+    InteractionIndexError,
+    check_interactions,
+    findings_from,
+    load_interaction_index,
+)
 from spine.inference.adapter import InferenceProvider
 from spine.inference.config import InferenceConfig, build_provider, model_spec
 from spine.inference.prompts import (
@@ -33,6 +40,31 @@ from spine.inference.prompts import (
 )
 from spine.schemas.medication import MedicationList
 from spine.schemas.record import Record
+
+INTERACTION_INDEX_PATH: Final[str] = "NIDANA_INTERACTION_INDEX"
+"""Where the drug interaction dataset lives, if the deployment has one.
+
+Unset by default. The best free dataset is CC BY-NC-SA, which fits a
+non-commercial deployment and not a commercial one, so the choice belongs to
+whoever deploys this rather than to this repository. See
+services/rx/rules/interactions/CANDIDATES.md.
+"""
+
+INTERACTION_COVERAGE_PATH: Final[str] = "NIDANA_INTERACTION_COVERAGE"
+"""Every molecule the dataset knows, including those it cleared.
+
+Optional but strongly wanted: without it, a molecule the dataset examined and
+found nothing for cannot be told from one it never saw, and the second must be
+reported as unchecked.
+"""
+
+INTERACTION_ATTRIBUTION: Final[str] = "NIDANA_INTERACTION_ATTRIBUTION"
+"""Who to credit for the interaction data, carried into every finding.
+
+Required whenever an index is configured. CC BY-NC-SA and most other open data
+licences require attribution, and a line in a README is not attribution at the
+counter where the finding is read.
+"""
 
 BRAND_INDEX_PATH: Final[str] = "NIDANA_BRAND_INDEX"
 """Where the brand-to-molecule index lives.
@@ -52,7 +84,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Module-level state is how startup publishes what it loaded. Request
     # handlers read it; nothing else writes it.
     global _brand_index, _provider, _prompts, _started, _model  # noqa: PLW0603
+    global _interaction_index  # noqa: PLW0603
     _brand_index = build_dependencies()
+    _interaction_index = build_interaction_index()
     _prompts = load_all("rx")
     assert_clinical_prompts_are_deterministic(_prompts, CONVERSATIONAL_AGENTS)
     config = InferenceConfig.from_environment()
@@ -73,6 +107,7 @@ app = FastAPI(
 _brand_index: BrandIndex | None = None
 _provider: InferenceProvider | None = None
 _model: str = ""
+_interaction_index: InteractionIndex | None = None
 _prompts: dict[str, Prompt] = {}
 _started = False
 
@@ -82,6 +117,38 @@ CONVERSATIONAL_AGENTS: Final[frozenset[str]] = frozenset()
 Reading a prescription is a transcription task, so every prompt here runs at
 temperature 0. Named explicitly so adding one forces the decision.
 """
+
+
+def build_interaction_index() -> InteractionIndex | None:
+    """Load the interaction dataset if one is configured.
+
+    Returns None when unset, and the service then reports
+    interaction_checking_available false rather than an empty findings list. A
+    deployment that has not licensed a dataset must not appear to have checked.
+    """
+    configured = os.environ.get(INTERACTION_INDEX_PATH, "").strip()
+    if not configured:
+        return None
+    attribution = os.environ.get(INTERACTION_ATTRIBUTION, "").strip()
+    if not attribution:
+        raise RuntimeError(
+            f"{INTERACTION_INDEX_PATH} is set but {INTERACTION_ATTRIBUTION} is not. "
+            f"Name the dataset and its licence, for example "
+            f"'DDInter (CC BY-NC-SA 4.0)'; it is shown with every interaction finding"
+        )
+    coverage = os.environ.get(INTERACTION_COVERAGE_PATH, "").strip()
+    try:
+        return load_interaction_index(
+            Path(configured),
+            attribution=attribution,
+            covered_path=Path(coverage) if coverage else None,
+        )
+    except InteractionIndexError as error:
+        raise RuntimeError(
+            f"{INTERACTION_INDEX_PATH} is set to {configured} but the index did not "
+            f"load: {error}. Unset it to run without interaction checking, or fix "
+            f"the file"
+        ) from error
 
 
 def build_dependencies() -> BrandIndex | None:
@@ -131,6 +198,8 @@ class CheckResponse(BaseModel):
     findings: tuple[FindingResponse, ...]
     blocks_dispensing: bool
     brand_resolution_available: bool
+    interaction_checking_available: bool
+    molecules_not_interaction_checked: tuple[str, ...]
 
 
 def _to_response(finding: Finding) -> FindingResponse:
@@ -155,6 +224,7 @@ def health() -> dict[str, object]:
     return {
         "status": "healthy" if _started else "degraded",
         "brand_resolution_available": _brand_index is not None,
+        "interaction_checking_available": _interaction_index is not None,
     }
 
 
@@ -162,21 +232,36 @@ def health() -> dict[str, object]:
 def check_prescription(request: CheckRequest) -> CheckResponse:
     """Run every safety check over a medication list.
 
-    Interaction checking is deliberately absent from the result. It needs a
-    licensed interaction dataset, and approximating it from general knowledge
-    would produce a check that looks like it works.
+    Interaction checking runs only when a dataset is configured, and the
+    response says which. An empty findings list from a deployment with no
+    dataset would read as "no interactions found", which is a different
+    statement from "interactions were not checked" and the more dangerous one.
+
+    `molecules_not_interaction_checked` carries the same distinction one level
+    down: even with a dataset, the molecules it does not cover were skipped
+    rather than cleared.
     """
     if not _started:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="service is still starting; the brand index is not loaded yet",
         )
-    findings = run_all(request.medications, request.record)
+
+    interactions: tuple[Finding, ...] = ()
+    uncovered: tuple[str, ...] = ()
+    if _interaction_index is not None:
+        report = check_interactions(request.medications, _interaction_index)
+        interactions = findings_from(report, request.medications)
+        uncovered = report.uncovered
+
+    findings = run_all(request.medications, request.record, interactions)
     return CheckResponse(
         check_id=uuid4(),
         findings=tuple(_to_response(finding) for finding in findings),
         blocks_dispensing=blocks_dispensing(findings),
         brand_resolution_available=_brand_index is not None,
+        interaction_checking_available=_interaction_index is not None,
+        molecules_not_interaction_checked=uncovered,
     )
 
 

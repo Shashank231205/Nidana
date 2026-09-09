@@ -1,0 +1,116 @@
+{
+  "prompt": "services/consult/prompts/rule_critic.md",
+  "version": "1.0.0",
+  "model": "granite4.1:3b",
+  "temperature": 0.0,
+  "run_on": "2026-09-09",
+  "rules": [
+    "RF_ACS_001",
+    "RF_ANAPHYLAXIS_001",
+    "RF_STROKE_001",
+    "RF_SEPSIS_001",
+    "RF_HEAD_INJURY_001",
+    "RF_SUICIDE_RISK_001"
+  ],
+  "note": "Before is the same prompt with model_spec default 512 output tokens; after is the prompt header 3072 actually honoured. The prompt text is unchanged between the two runs apart from the citation principle.",
+  "before": {
+    "label": "512 output tokens (model_spec default)",
+    "rules": 6,
+    "mean_chars": 2165,
+    "constructed_a_miss": 6,
+    "named_the_guideline_gap": 4,
+    "argued_the_other_side": 0,
+    "wrote_questions": 0,
+    "trustworthy": 6
+  },
+  "after": {
+    "label": "3072 output tokens (prompt header honoured)",
+    "rules": 6,
+    "mean_chars": 4812,
+    "constructed_a_miss": 6,
+    "named_the_guideline_gap": 6,
+    "argued_the_other_side": 6,
+    "wrote_questions": 6,
+    "trustworthy": 6
+  },
+  "per_rule_after": [
+    {
+      "rule_id": "RF_ACS_001",
+      "seconds": 152.2,
+      "chars": 4874,
+      "trustworthy": true,
+      "truncated": false,
+      "approving_language": false,
+      "proposed_thresholds": [],
+      "constructed_a_miss": true,
+      "named_the_guideline_gap": true,
+      "argued_the_other_side": true,
+      "wrote_questions": true
+    },
+    {
+      "rule_id": "RF_ANAPHYLAXIS_001",
+      "seconds": 1973.3,
+      "chars": 4719,
+      "trustworthy": true,
+      "truncated": false,
+      "approving_language": false,
+      "proposed_thresholds": [],
+      "constructed_a_miss": true,
+      "named_the_guideline_gap": true,
+      "argued_the_other_side": true,
+      "wrote_questions": true
+    },
+    {
+      "rule_id": "RF_STROKE_001",
+      "seconds": 135.4,
+      "chars": 5659,
+      "trustworthy": true,
+      "truncated": false,
+      "approving_language": false,
+      "proposed_thresholds": [],
+      "constructed_a_miss": true,
+      "named_the_guideline_gap": true,
+      "argued_the_other_side": true,
+      "wrote_questions": true
+    },
+    {
+      "rule_id": "RF_SEPSIS_001",
+      "seconds": 126.1,
+      "chars": 5245,
+      "trustworthy": true,
+      "truncated": false,
+      "approving_language": false,
+      "proposed_thresholds": [],
+      "constructed_a_miss": true,
+      "named_the_guideline_gap": true,
+      "argued_the_other_side": true,
+      "wrote_questions": true
+    },
+    {
+      "rule_id": "RF_HEAD_INJURY_001",
+      "seconds": 85.5,
+      "chars": 3626,
+      "trustworthy": true,
+      "truncated": false,
+      "approving_language": false,
+      "proposed_thresholds": [],
+      "constructed_a_miss": true,
+      "named_the_guideline_gap": true,
+      "argued_the_other_side": true,
+      "wrote_questions": true
+    },
+    {
+      "rule_id": "RF_SUICIDE_RISK_001",
+      "seconds": 112.2,
+      "chars": 4750,
+      "trustworthy": true,
+      "truncated": false,
+      "approving_language": false,
+      "proposed_thresholds": [],
+      "constructed_a_miss": true,
+      "named_the_guideline_gap": true,
+      "argued_the_other_side": true,
+      "wrote_questions": true
+    }
+  ]
+}

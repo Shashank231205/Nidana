@@ -100,3 +100,54 @@ musculoskeletal. That is the breadth the change was for.
 **This measures breadth, not correctness.** Whether those are the right four
 conditions for a 34-year-old with exertional chest tightness needs a clinician
 and a vignette set. Breadth without correctness is not a clinical claim.
+
+---
+
+## rule_critic 1.0.0 — new (2026-09-09)
+
+A design-time reviewer, not part of any patient session. It reads one
+unverified red flag rule and writes the challenge a sceptical senior colleague
+would make: the patient this rule misses, the patient it over-refers, what the
+source guideline assumed that this system does not have, and the questions a
+verifying clinician must answer.
+
+It exists because thirty rules carry `verify_before_ship` and a clinician's
+first hour on them is spent on something that is not judgement — finding the
+guideline, finding the passage, imagining the miss. **Nothing it writes clears
+a flag.** `Challenge.still_unverified` is always true, and a critique that
+reads as approval is caught and flagged rather than acted on.
+
+Report: `eval/reports/2026-09-09-rule-critic-v1.json`
+
+```
+                          512 tokens    3072 tokens
+mean length               2,165 ch      4,812 ch
+constructed a miss        6/6           6/6
+named the guideline gap   4/6           6/6
+argued the other side     0/6           6/6
+wrote the questions       0/6           6/6
+invented a threshold      1 run         0/6
+```
+
+The two runs use the same prompt. The difference is that `model_spec()`
+defaults to 512 output tokens and the header's 3072 was never read — a bug in
+every agent in the repository, fixed in the same change. At 512 the critic
+stopped partway through its concession section, so what survived read more
+one-sided than it actually was, and the questions a reviewer acts on were
+missing entirely. It looked like a model limitation for a while.
+
+`Challenge.truncated` now detects that state and renders a warning saying the
+surviving text is more one-sided than the critic was.
+
+**This measures form, not correctness.** Whether the miss it constructs for
+RF_ACS_001 — a 58-year-old diabetic woman with nausea and sweating and no chest
+pain — is the right thing to worry about is a clinical judgement, and the point
+of the artefact is that a clinician makes it faster. The critic found that miss
+independently from the criteria alone, which is encouraging and is not
+evidence that its other findings are sound.
+
+One drift caught in the first run: the model wrote "over 60 years" as a
+proposed threshold. `find_proposed_thresholds` surfaces these rather than
+stripping them, because seeing what the model reached for is more useful than
+hiding it. A principle forbidding invented guideline numbers was added after
+the model cited a NICE guideline number that does not apply.

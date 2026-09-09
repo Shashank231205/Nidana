@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from services.rx.agents.resolver import Brand, BrandIndex  # noqa: E402
 from services.rx.api import app as api  # noqa: E402
+from services.rx.clinical.interactions import InteractionIndex  # noqa: E402
 from spine.inference.adapter import (  # noqa: E402
     Completion,
     InferenceProvider,
@@ -289,3 +290,53 @@ class TestReading:
             "/v1/prescriptions/read", json={"ocr_text": "", "source_id": "rx-1"}
         )
         assert response.status_code == 422
+
+
+class TestInteractionReporting:
+    """The distinction the endpoint must not blur.
+
+    "No interactions found" and "interactions were not checked" are different
+    statements, and a pharmacist would act differently on each. A deployment
+    with no dataset returns an empty findings list, and without the flag beside
+    it that list reads as the first when it means the second.
+    """
+
+    def payload(self) -> dict[str, object]:
+        return {
+            "medications": MedicationList(
+                medications=(medication("Tab Crocin 500mg BD", "paracetamol"),)
+            ).model_dump(mode="json"),
+            "record": empty_record().model_dump(mode="json"),
+        }
+
+    def test_no_dataset_is_reported_as_unavailable(self) -> None:
+        test_client = client_with()
+        api._interaction_index = None
+        body = test_client.post("/v1/checks", json=self.payload()).json()
+        assert body["interaction_checking_available"] is False
+
+    def test_health_reports_interaction_availability(self) -> None:
+        test_client = client_with()
+        api._interaction_index = None
+        body = test_client.get("/health").json()
+        assert body["interaction_checking_available"] is False
+
+    def test_uncovered_molecules_are_named_in_the_response(self) -> None:
+        """Even with a dataset, what it does not know was skipped, not cleared."""
+        test_client = client_with()
+        api._interaction_index = InteractionIndex((), frozenset({"warfarin"}), "test data")
+        try:
+            body = test_client.post("/v1/checks", json=self.payload()).json()
+            assert body["interaction_checking_available"] is True
+            assert "paracetamol" in body["molecules_not_interaction_checked"]
+        finally:
+            api._interaction_index = None
+
+    def test_a_covered_molecule_is_not_listed_as_unchecked(self) -> None:
+        test_client = client_with()
+        api._interaction_index = InteractionIndex((), frozenset({"paracetamol"}), "test data")
+        try:
+            body = test_client.post("/v1/checks", json=self.payload()).json()
+            assert body["molecules_not_interaction_checked"] == []
+        finally:
+            api._interaction_index = None
