@@ -203,19 +203,30 @@ def check_pregnancy(medications: MedicationList, record: Record) -> tuple[Findin
     )
 
 
-def run_all(medications: MedicationList, record: Record) -> tuple[Finding, ...]:
+def run_all(
+    medications: MedicationList,
+    record: Record,
+    interactions: tuple[Finding, ...] = (),
+) -> tuple[Finding, ...]:
     """Every check, most severe first.
 
-    Interaction checking is deliberately absent. It needs a licensed
-    interaction dataset, which BUILD_SPEC lists as an unresolved dependency,
-    and approximating it from general knowledge would produce a check that
-    looks like it works.
+    Interaction findings are passed in rather than computed here, because they
+    need a dataset whose licence is a deployment decision — see
+    services/rx/rules/interactions/CANDIDATES.md. A deployment without one
+    passes nothing and still gets allergy, duplicate therapy and pregnancy
+    checking, which need only the patient's own record.
+
+    What it does not get is silence about the gap: with no dataset configured
+    the caller raises no interaction findings at all, and the API reports
+    interaction_checking_available false rather than an empty list that reads
+    as "no interactions found".
     """
     findings = (
         *check_allergies(medications, record),
         *check_unresolved(medications),
         *check_duplicate_therapy(medications),
         *check_pregnancy(medications, record),
+        *interactions,
     )
     order = {
         Severity.CONTRAINDICATED: 0,
