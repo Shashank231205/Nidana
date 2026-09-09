@@ -52,13 +52,21 @@ front of them.
 
 ## Blocked
 
-**Interaction checking needs a dataset, and the dataset is a licence
-decision.** The checker itself is built and wired — `clinical/interactions.py`,
-source-agnostic, reporting what it did *not* check as prominently as what it
-did. What is missing is data. DDInter has the best of it and is CC BY-NC-SA
-4.0: usable in a non-commercial deployment, not in a commercial one without
-permission. `rules/interactions/CANDIDATES.md` records what each option
-implies, including why the prediction datasets must not be used here.
+**Interaction checking needs a dataset this product cannot get for free.** The
+checker is built and wired — `clinical/interactions.py`, source-agnostic,
+reporting what it did *not* check as prominently as what it did. What is
+missing is data.
+
+Nidana is commercial, which rules out every free source: DDInter is
+CC BY-NC-SA and non-commercial only, RxNorm stopped carrying interactions when
+NLM discontinued that API in January 2024, and the prediction datasets must not
+be used at all — a predicted interaction shown to a pharmacist with the weight
+of a documented one is the failure this service exists to avoid.
+
+What remains is a paid licence: DrugBank, First Databank or Medi-Span, or
+DDInter with written permission. `rules/interactions/CANDIDATES.md` sets out
+each, and what adopting one would involve — one loader, mapping that vendor's
+severity grades onto `Severity`.
 
 With no dataset configured, `/v1/checks` reports
 `interaction_checking_available: false` rather than an empty findings list. An

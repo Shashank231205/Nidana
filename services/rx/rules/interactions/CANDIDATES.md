@@ -1,9 +1,14 @@
-# Drug interaction data: what is available, and the licence problem
+# Drug interaction data: why a commercial deployment needs a paid licence
 
-**Nothing is implemented.** `services/rx/clinical/checks.py` runs duplicate
-therapy and allergy checks, which need only the patient's own record. Pairwise
-drug–drug interaction checking needs a dataset, and this file records which
-datasets exist and why none of them has been adopted yet.
+**The checker is built; the dataset is not.**
+`services/rx/clinical/interactions.py` does pairwise interaction checking
+against whatever index it is given, and reports the molecules it could not
+check as prominently as the interactions it found. What it has no source for is
+the data.
+
+Nidana is a commercial product, and that fact removes every free option. This
+file records which datasets exist, why each one is or is not usable here, and
+what adopting a paid one would involve.
 
 Brand-to-molecule resolution is a solved problem here as of
 `scripts/build_brand_index.py` — 175,953 Indian brands from an MIT-licensed
@@ -12,28 +17,25 @@ that is legal rather than technical.
 
 ## The candidates
 
-### DDInter — the best data, on a licence that may not fit
+### DDInter — the best free data, and not available to this product
 
 236,834 interactions across 1,833 approved drugs, with mechanism descriptions,
 risk levels, management strategies and alternative medications. Bulk CSV
 download by ATC class. Published in *Nucleic Acids Research* (DDInter 2021,
 DDInter 2.0 in 2025), so the curation is documented rather than scraped.
 
-It is the most usable dataset found, and the risk levels and management
-strategies are exactly the fields a pharmacist-facing check needs.
-
 **Licence: CC BY-NC-SA 4.0.** Non-commercial only, share-alike on derivatives.
 
-This is a decision for the repository owner, not an engineering one:
+**Ruled out.** The repository owner has confirmed Nidana is a commercial
+product, which puts DDInter outside what its licence permits without separate
+written permission from the authors. That permission has not been sought and
+this file does not assume it would be given.
 
-- If Nidana is deployed non-commercially, this is usable with attribution, and
-  the share-alike term applies to any derived interaction dataset.
-- If Nidana is or becomes a commercial product, it is not usable without
-  separate permission from the authors.
-
-The share-alike clause deserves attention even in the non-commercial case: a
-derived file committed to this repository would carry CC BY-NC-SA, which is a
-stronger claim on the repository than an MIT dataset makes.
+Worth writing down rather than forgetting, in case that changes: the data is
+good, the curation is documented in two *Nucleic Acids Research* papers, and
+the risk levels and management strategies are exactly the fields a
+pharmacist-facing check needs. If a licence is ever negotiated, the loader in
+`services/rx/clinical/interactions.py` takes it without modification.
 
 ### RxNorm / RxNav — public domain, but no longer carries interactions
 
@@ -85,18 +87,42 @@ about them rather than discovering them:
    thresholds, what counts as a major interaction differs between sources.
    DDInter's risk levels are its own, and adopting them adopts its judgement.
 
-## What would need to happen
+## Where this leaves a commercial deployment
 
-1. The repository owner decides whether CC BY-NC-SA fits this project's
-   licensing and distribution intent. That question is not answerable from
-   inside the code.
-2. If yes: download by ATC class, map DDInter's drug names onto the molecule
-   names the brand index produces — the join is the real engineering work here,
-   since neither side uses RXCUI — and keep the derived file out of the
-   repository the way the brand index and knowledge index already are.
-3. The unmatched molecules are reported rather than dropped silently. A
-   molecule the interaction dataset does not know is a molecule whose
-   interactions are unchecked, and the pharmacist must be told which.
+Nidana is commercial, so the free options are exhausted: DDInter is
+non-commercial, RxNorm no longer carries interactions, and the prediction
+datasets must not be used at all. What remains is a paid licence.
+
+**The commercial options**, none of which has been priced or approached:
+
+- **DrugBank** — the reference most interaction checkers are built on, and the
+  source that replaced NLM's own discontinued API. Commercial licensing exists
+  and is the obvious first call.
+- **First Databank** and **Medi-Span** — the two established clinical drug
+  content vendors. Both carry Indian formulary coverage as a separate question
+  to ask, because neither is built around it.
+- **DDInter, with permission.** Its authors are academics and the paper names
+  them; a commercial licence may simply be a conversation.
+
+**What is already built and waiting.** The checker is complete and
+source-agnostic. Adopting any of the above means writing one loader that maps
+that vendor's severity grades onto `Severity` and produces a coverage list.
+Nothing else changes.
+
+**Until then, Rx runs without it**, reporting
+`interaction_checking_available: false` on every check rather than an empty
+findings list. That distinction is the point: an empty list reads as "no
+interactions found", and what is true is "interactions were not checked".
+
+## When a dataset does arrive
+
+1. Download by ATC class, and keep the derived file out of the repository the
+   way the brand index and knowledge index already are.
+2. Map that vendor's drug names onto the molecule names the brand index
+   produces. This is the real engineering work, since neither side uses RXCUI.
+3. Report the unmatched molecules rather than dropping them silently. A
+   molecule the dataset does not know is one whose interactions are unchecked,
+   and the pharmacist must be told which.
 
 ## Sources
 
@@ -106,4 +132,6 @@ about them rather than discovering them:
 - [RxNorm overview](https://www.nlm.nih.gov/research/umls/rxnorm/overview.html) — public domain
 - [RxNorm terms of service](https://www.nlm.nih.gov/research/umls/rxnorm/docs/termsofservice.html)
 
-Compiled 2026-09-09. No interaction data has been downloaded or committed.
+Compiled 2026-09-09. Updated 2026-09-10, when the repository owner confirmed
+the product is commercial. No interaction data has been downloaded or
+committed.
