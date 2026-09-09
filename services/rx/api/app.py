@@ -69,9 +69,10 @@ counter where the finding is read.
 BRAND_INDEX_PATH: Final[str] = "NIDANA_BRAND_INDEX"
 """Where the brand-to-molecule index lives.
 
-BUILD_SPEC lists this dataset as an unresolved dependency. Rx starts without
-it and reports every line unresolved rather than guessing a molecule, because
-a wrong molecule silently invalidates every other check on the list.
+Built by scripts/build_brand_index.py from the open dataset that script names.
+Rx starts without it and reports every line unresolved rather than guessing a
+molecule, because a wrong molecule silently invalidates every other check on
+the list.
 """
 
 @asynccontextmanager

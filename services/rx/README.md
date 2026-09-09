@@ -52,13 +52,23 @@ front of them.
 
 ## Blocked
 
-**Interaction checking is deliberately absent.** It needs a licensed
-interaction dataset, listed as unresolved in `docs/BUILD_SPEC.md` section 8.
-Approximating it from general knowledge would produce a check that looks like
-it works, which is worse than one that is visibly missing.
+**Interaction checking needs a dataset, and the dataset is a licence
+decision.** The checker itself is built and wired — `clinical/interactions.py`,
+source-agnostic, reporting what it did *not* check as prominently as what it
+did. What is missing is data. DDInter has the best of it and is CC BY-NC-SA
+4.0: usable in a non-commercial deployment, not in a commercial one without
+permission. `rules/interactions/CANDIDATES.md` records what each option
+implies, including why the prediction datasets must not be used here.
 
-**Brand-to-molecule resolution needs its dataset.** The mapping is not publicly
-maintained in usable form. This is a project in itself, not a lookup.
+With no dataset configured, `/v1/checks` reports
+`interaction_checking_available: false` rather than an empty findings list. An
+empty list reads as "no interactions found", which is a different statement
+from "interactions were not checked" and the more dangerous one.
+
+**Brand-to-molecule resolution is done.** `scripts/build_brand_index.py` builds
+it from the MIT-licensed Indian Medicine Dataset: 253,973 products in, 175,953
+brands out, zero rows unparsed. The index is a derived artefact and is
+gitignored, like the knowledge index.
 
 **Allergy class matching is not attempted.** That a penicillin allergy covers
 amoxicillin is a fact about drug classes, and the current check matches on
