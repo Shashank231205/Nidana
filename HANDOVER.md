@@ -19,13 +19,13 @@ Written 2026-09-08. Repository: `https://github.com/Shashank231205/Nidana`
 
 ## Where things stand
 
-76 commits, 1,205 tests passing, nothing skipped. `mypy --strict` clean across
-175 files, ruff clean, all four architectural boundaries hold, CI green.
+82 commits, 1,232 tests passing, nothing skipped. `mypy --strict` clean across
+178 files, ruff clean, all four architectural boundaries hold, CI green.
 
 Verify with:
 
 ```bash
-python -m pytest                        # 1205
+python -m pytest                        # 1232
 python -m ruff check .
 python -m mypy .
 python scripts/verify_rules.py
@@ -192,6 +192,28 @@ without both. That is the only thing in the repository that clears
 
 `--list` shows all three states and ends by saying how many rules block a
 release, so the distinction cannot be lost while reading.
+
+---
+
+## Two things CI catches that local runs cannot
+
+**Optional dependencies resolve locally and not in CI.** pyannote and torch are
+installed on this machine; CI does not carry a 2GB download for a module used
+behind an interface this repo types itself. Three runs failed on that before I
+looked. `pyproject.toml` lists both bare and dotted names under
+`ignore_missing_imports`, alongside faster_whisper, huggingface_hub, pytesseract
+and PIL, which are the same case.
+
+**A mocked suite cannot find a wrong model name.** Every agent passed
+`prompt.model_class` — a prose description — where the model name goes, and
+Ollama returns HTTP 400. All 1,200 tests passed throughout, because they mock
+the provider, which is the right thing for them to test. It surfaced only when
+an agent was run against real Ollama. `spec_for(prompt, model)` is now the one
+place the name and the tuning meet, and it refuses an empty name.
+
+The lesson is narrow and worth keeping: **run one agent against a real model
+before believing the suite.** `scripts/challenge_rules.py --only <RULE_ID>` is
+the cheapest way to do it.
 
 ---
 
