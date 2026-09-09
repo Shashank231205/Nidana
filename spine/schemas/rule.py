@@ -16,7 +16,7 @@ from datetime import date
 from enum import Enum
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ActionT = TypeVar("ActionT", bound=str)
 
@@ -100,6 +100,33 @@ class AiReview(BaseModel):
         description="The kind of clinician who should review this rule",
     )
     dossier_path: str | None = None
+
+    @field_validator("refer_to")
+    @classmethod
+    def _specialty_not_a_sentence(cls, value: str) -> str:
+        """Reject a referral that is a cut-off sentence rather than a specialty.
+
+        A long-running panel process holds the module it imported at start, so
+        a fix to the extractor does not reach a run already in flight. Two
+        rules were written with the chair's reasoning still attached --
+        "Emergency Medicine / Critical Care - to evaluate the clinical impact
+        of missed occult GI bleed and decide on" -- which reads as a specialty
+        and is not one. Validating here catches it at the write, where the
+        extractor cannot be relied on to have been the current one.
+        """
+        text = value.strip()
+        if ":" in text:
+            raise ValueError(
+                f"refer_to carries a label, not a bare specialty: {value!r}. "
+                f"Drop the prefix and name the specialty alone."
+            )
+        for marker in ("\N{EM DASH}", "\N{EN DASH}", " - ", " to ", " who ", "("):
+            if marker in text:
+                raise ValueError(
+                    f"refer_to reads as a sentence, not a specialty: {value!r}. "
+                    f"Name the specialty alone, e.g. 'emergency physician'."
+                )
+        return text
 
     @property
     def clears_release(self) -> bool:

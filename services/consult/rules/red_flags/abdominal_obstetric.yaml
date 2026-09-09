@@ -56,7 +56,7 @@ rules:
       reviewed_on: 2026-09-09
       models: [granite4.1:3b]
       panel_version: 1.0.0
-      refer_to: "Specialty: Obstetrics/Gynecology"
+      refer_to: "Obstetrics/Gynecology"
       dossier_path: "docs/verification/panel/RF_ECTOPIC_001.md"
 
   - id: RF_OBSTETRIC_BLEED_001
@@ -144,7 +144,7 @@ rules:
       reviewed_on: 2026-09-09
       models: [granite4.1:3b]
       panel_version: 1.0.0
-      refer_to: "Specialty: Urology / Emergency Medicine – to evaluate whether the rule’s sensitivity"
+      refer_to: "Urology / Emergency Medicine"
       dossier_path: "docs/verification/panel/RF_TORSION_001.md"
       concerns:
         - "Missed cases** – The rule will not fire for patients who present with severe testicular/groin pain and vomiting but lack any documented chest‑pain component (e.g., younger patients or adults whose pain is described as “throbbing” rather than “radiating to the abdomen”). This includes:"
@@ -174,7 +174,7 @@ rules:
       reviewed_on: 2026-09-09
       models: [granite4.1:3b]
       panel_version: 1.0.0
-      refer_to: "Specialty: Emergency Medicine / Critical Care – to evaluate the clinical impact of missed occult GI bleed and decide on"
+      refer_to: "Emergency Medicine / Critical Care"
       dossier_path: "docs/verification/panel/RF_GI_BLEED_001.md"
       concerns:
         - "Missed cases** – The rule will fail to trigger for patients who present with active gastrointestinal bleeding that does **not** include dizziness or fainting, such as:"

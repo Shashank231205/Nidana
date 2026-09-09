@@ -76,6 +76,21 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_PE_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "clinical-pathology specialist"
+      dossier_path: "docs/verification/panel/RF_PE_001.md"
+      concerns:
+        - "Missed cases – The rule fails to fire for patients who present with dyspnoea and unilateral leg swelling but lack chest‑pain or haemoptysis. This is a real clinical gap, especially in populations (e.g., diabetics with COPD in India) where chest pain is not a reliable symptom of PE."
+        - "Over‑referral risk – Patients who truly have PE (e.g., classic chest‑pain‑plus‑dyspnoea‑plus‑recent‑immobility) will be correctly flagged, but the rule’s reliance on chest pain may cause unnecessary escalation for atypical presentations, potentially delaying care for those who would benefit from earlier imaging."
+        - "Schema limitation – The rule does not capture “recent immobility” as a binary flag; it expects a documented period (e.g., “bedridden for >24 h”), which may not be recorded in all clinical notes. This could lead to missed cases even when the presentation is otherwise appropriate."
+        - "Emergency physician (Western‑focused) argues that the rule’s inclusion of chest‑pain and haemoptysis is justified because these are common and readily documented in many emergency settings, reducing false‑positive imaging referrals."
+        - "Indian practice reviewer contends that in Indian district hospitals, a high proportion of PE cases present without chest pain (e.g., diabetics with COPD), and the rule’s requirement for chest pain may lead to missed diagnoses, increasing morbidity and mortality."
+        - "Safety engineer suggests that the rule’s narrowness may cause over‑referral for patients who truly have PE (e.g., classic chest‑pain‑plus‑dyspnoea‑plus‑immobility), potentially delaying necessary care for those with atypical presentations."
 
   - id: RF_RESP_FAILURE_001
     label: Respiratory compromise
@@ -86,6 +101,14 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_RESP_FAILURE_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_RESP_FAILURE_001.md"
 
   - id: RF_ANAPHYLAXIS_001
     label: Possible anaphylaxis
@@ -96,6 +119,14 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_ANAPHYLAXIS_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "Emergency Medicine / Critical Care"
+      dossier_path: "docs/verification/panel/RF_ANAPHYLAXIS_001.md"
 
   - id: RF_SYNCOPE_001
     label: Syncope with cardiac features
@@ -106,6 +137,24 @@ rules:
     action: ESCALATE_BAND
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_SYNCOPE_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "cardiologist or emergency medicine specialist familiar with cardiac syncope patterns in diverse populations"
+      dossier_path: "docs/verification/panel/RF_SYNCOPE_001.md"
+      concerns:
+        - "Missed case – The rule fails to trigger for patients whose syncope is driven by mechanisms other than the three explicitly coded cardiac features (chest pain, palpitations, or exertional pain)."
+        - "Emergency physician*: Misses patients with arrhythmogenic collapse or vasovagal syncope who present without chest pain, palpitations, or exertional pain."
+        - "Indian practice reviewer*: Misses a substantial subset of cardiac syncope in Indian district hospitals caused by hypertensive heart disease, which often presents without classic cardiac‑pain or exertional‑pain cues."
+        - "Safety engineer*: Misses patients with atrial fibrillation‑related syncope (no chest pain) and other exertional‑only syncope mechanisms, potentially delaying anticoagulation or rhythm‑control therapy."
+        - "Over‑referral – The rule does not over‑refer in the current form; it simply fails to fire for atypical presentations. However, expanding the rule to include exertional syncope alone could increase false‑positive escalations, especially in low‑resource settings where many exertional syncopes are due to decompensated heart failure or arrhythmias without overt cardiac‑pain symptoms."
+        - "Decision point – Whether to modify the rule to capture exertional syncope as a primary trigger (e.g., `syncope_present` alone) while retaining the existing cardiac‑feature branches for differentiation, or to keep the rule as‑is to avoid unnecessary escalations."
+        - "Emergency physician argues that the rule is sufficient for the most common presentation of cardiac‑related syncope (chest pain, palpitations, or exertional pain) and that expanding it would increase false‑positive referrals, potentially delaying care for patients whose syncope is truly cardiac but without the three specific features."
+        - "Indian practice reviewer contends that the current rule misses a high‑risk population (hypertensive heart disease) where exertional syncope is prevalent and often untreated, justifying an expansion to capture exertional syncope alone."
+        - "Safety engineer emphasizes the risk of missing arrhythmia‑related syncope (e.g., atrial fibrillation) and the potential for delayed anticoagulation, suggesting that the rule should be broadened to include rhythm or heart‑rate criteria."
 
   - id: RF_HAEMOPTYSIS_001
     label: Significant haemoptysis

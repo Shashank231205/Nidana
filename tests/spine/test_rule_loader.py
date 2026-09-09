@@ -287,6 +287,53 @@ class TestTheThreeVerificationStates:
         """There is nothing on it a caller could mistake for approval."""
         assert not self.review().clears_release
 
+    @pytest.mark.parametrize(
+        "referral",
+        [
+            "Emergency Medicine / Critical Care \N{EN DASH} to evaluate the impact",
+            "Urology \N{EM DASH} to decide whether sensitivity is adequate",
+            "cardiology - to review the threshold",
+            "a specialist who understands Indian practice",
+            "allergy specialist (e.g. an immunologist)",
+        ],
+    )
+    def test_a_referral_that_is_a_sentence_is_rejected(self, referral: str) -> None:
+        """A cut-off sentence reads as a specialty and is not one.
+
+        These are real strings a panel run wrote before the extractor was
+        fixed. The extractor is not the only guard, because a long-running
+        panel process holds the module it imported at start.
+        """
+        with pytest.raises(ValidationError):
+            AiReview(
+                reviewed_on=date(2026, 9, 9),
+                models=("granite4.1:3b",),
+                panel_version="1.0.0",
+                refer_to=referral,
+            )
+
+    def test_a_referral_that_is_a_label_is_rejected(self) -> None:
+        """"Specialty: Obstetrics/Gynecology" names the field, not the doctor."""
+        with pytest.raises(ValidationError):
+            AiReview(
+                reviewed_on=date(2026, 9, 9),
+                models=("granite4.1:3b",),
+                panel_version="1.0.0",
+                refer_to="Specialty: Obstetrics/Gynecology",
+            )
+
+    @pytest.mark.parametrize(
+        "referral",
+        ["emergency physician", "Obstetrics/Gynecology", "Urology / Emergency Medicine"],
+    )
+    def test_a_bare_specialty_is_accepted(self, referral: str) -> None:
+        assert AiReview(
+            reviewed_on=date(2026, 9, 9),
+            models=("granite4.1:3b",),
+            panel_version="1.0.0",
+            refer_to=referral,
+        ).refer_to == referral
+
     def test_a_review_names_who_should_look_at_it(self) -> None:
         """The most useful thing a panel can offer is the right specialist."""
         assert self.review().refer_to == "emergency physician"
