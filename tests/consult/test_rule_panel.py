@@ -339,3 +339,31 @@ Emergency physician.
 
     def test_a_bold_referral_heading_is_found(self) -> None:
         assert extract_referral(self.BOLD_HEADINGS) == "Emergency physician"
+
+
+class TestReferralsFromTheRealRun:
+    """Shapes the chair actually produced over thirty rules.
+
+    Each of these was recorded verbatim on a rule before the tidier handled
+    it. The field is meant to route a rule to the right desk, and a sentence
+    fragment in it does not.
+    """
+
+    def test_a_specialty_label_keeps_only_the_specialty(self) -> None:
+        brief = "### Refer to\nSpecialty: Urology / Emergency Medicine"
+        assert extract_referral(brief) == "Urology / Emergency Medicine"
+
+    def test_an_em_dash_clause_is_dropped(self) -> None:
+        brief = (
+            "### Refer to\nSpecialty: Emergency Medicine \N{EM DASH} to evaluate "
+            "the clinical impact of missed occult bleeding"
+        )
+        assert extract_referral(brief) == "Emergency Medicine"
+
+    def test_a_hyphen_clause_is_dropped(self) -> None:
+        brief = "### Refer to\nCardiology - to confirm the criteria are wide enough"
+        assert extract_referral(brief) == "Cardiology"
+
+    def test_a_purpose_clause_is_dropped(self) -> None:
+        brief = "### Refer to\nObstetrics for review of the bleeding threshold"
+        assert extract_referral(brief) == "Obstetrics"

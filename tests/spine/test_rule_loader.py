@@ -27,7 +27,13 @@ from spine.rules.rule_loader import (
     rules_dir,
 )
 from spine.schemas.predicate import Comparator, Predicate
-from spine.schemas.rule import AiReview, Clause, Rule, VerificationState
+from spine.schemas.rule import (
+    AiReview,
+    Clause,
+    ModelAttestation,
+    Rule,
+    VerificationState,
+)
 
 UNVERIFIED_SET = """
 name: test_rules
@@ -307,3 +313,99 @@ class TestTheThreeVerificationStates:
         signed = self.rule(verified=True, review=self.review())
         assert signed.state is VerificationState.CLINICIAN_VERIFIED
         assert signed.review is not None
+
+
+class TestModelAttestation:
+    """A deployment running a rule on a model's reading, and saying so.
+
+    This state exists because the alternative to admitting it is worse:
+    pretending a doctor signed, or refusing to start at all. It is only
+    defensible while the admission is load-bearing, which is what these tests
+    hold in place.
+    """
+
+    def attestation(self, *, drift: tuple[str, ...] = ()) -> ModelAttestation:
+        return ModelAttestation(
+            attested_on=date(2026, 9, 10),
+            attested_by=("granite4.1:3b",),
+            accepted_by="S Shashank, CTO",
+            panel_version="1.0.0",
+            drift=drift,
+        )
+
+    def rule(self, **fields: object) -> Rule[RedFlagAction]:
+        return Rule[RedFlagAction](
+            id="RF_TEST_003",
+            label="Test rule",
+            any_of=(Clause(all_of=("chest_pain_present",)),),
+            action=RedFlagAction.TERMINATE_EMERGENCY,
+            source="PLACEHOLDER",
+            verify_before_ship=True,
+            **fields,
+        )
+
+    def test_an_attested_rule_reports_that_state(self) -> None:
+        assert (
+            self.rule(attestation=self.attestation()).state
+            is VerificationState.MODEL_ATTESTED
+        )
+
+    def test_an_attested_rule_does_not_block_a_release(self) -> None:
+        """The deployment accepted this risk with a name against it."""
+        assert not self.rule(attestation=self.attestation()).blocks_release
+
+    def test_an_attested_rule_discloses_on_every_output(self) -> None:
+        """The admission is what makes the state defensible.
+
+        A rule that ran on a model's reading and said nothing about it would
+        be indistinguishable, in the record, from one a clinician signed.
+        """
+        disclosure = self.rule(attestation=self.attestation()).disclosure
+        assert disclosure is not None
+        assert "not reviewed by a clinician" in disclosure
+        assert "granite4.1:3b" in disclosure
+
+    def test_a_clinician_verified_rule_discloses_nothing(self) -> None:
+        signed = Rule[RedFlagAction](
+            id="RF_TEST_004",
+            label="Test",
+            any_of=(Clause(all_of=("chest_pain_present",)),),
+            action=RedFlagAction.TERMINATE_EMERGENCY,
+            source="s",
+            verify_before_ship=False,
+            verified_on=date(2026, 1, 1),
+            verified_by="Dr A Reviewer",
+        )
+        assert signed.disclosure is None
+
+    def test_an_attestation_can_never_claim_to_be_a_clinician(self) -> None:
+        """A property, not a field, so no YAML or payload can set it true."""
+        assert not self.attestation().is_clinician
+
+    def test_the_drift_count_travels_with_the_label(self) -> None:
+        """The panel invented four clinical thresholds on its first eight rules.
+
+        Whoever reads an attested rule needs that number beside it, not in a
+        log they will not open.
+        """
+        attested = self.rule(
+            attestation=self.attestation(drift=("proposed unsourced thresholds",))
+        )
+        assert attested.disclosure is not None
+        assert "1 drift warning" in attested.disclosure
+
+    def test_an_unattested_reviewed_rule_still_blocks(self) -> None:
+        """A panel review alone changes nothing about the gate."""
+        reviewed = self.rule(
+            review=AiReview(
+                reviewed_on=date(2026, 9, 9),
+                models=("granite4.1:3b",),
+                panel_version="1.0.0",
+                refer_to="emergency physician",
+            )
+        )
+        assert reviewed.blocks_release
+        assert reviewed.state is VerificationState.AI_REVIEWED
+
+    def test_an_attestation_names_who_accepted_the_risk(self) -> None:
+        assert self.attestation().accepted_by == "S Shashank, CTO"

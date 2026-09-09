@@ -138,9 +138,8 @@ def require_verified(
     """
     if allow_unverified:
         return
-    pending = tuple(
-        rule for rule_set in rule_sets for rule in rule_set.unverified
-    )
+    every = tuple(rule for rule_set in rule_sets for rule in rule_set.rules)
+    pending = tuple(rule for rule in every if rule.blocks_release)
     if pending:
         listing = "; ".join(f"{rule.id} ({rule.source})" for rule in pending)
         raise UnverifiedRulesError(
@@ -149,6 +148,21 @@ def require_verified(
             f"then set verify_before_ship false with the verified_on date. To run anyway "
             f"in development, set NIDANA_ALLOW_UNVERIFIED_RULES=true"
         )
+
+
+def disclosures(rule_sets: tuple[RuleSet[ActionT], ...]) -> tuple[str, ...]:
+    """What every model-attested rule in this set must disclose.
+
+    Returned rather than logged once at startup. A deployment running on
+    model-attested rules has to say so wherever a decision those rules
+    contributed to is read, and a line in a boot log is not that.
+    """
+    return tuple(
+        rule.disclosure
+        for rule_set in rule_sets
+        for rule in rule_set.rules
+        if rule.disclosure is not None
+    )
 
 
 def all_rules(rule_sets: tuple[RuleSet[ActionT], ...]) -> tuple[Rule[ActionT], ...]:

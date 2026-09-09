@@ -31,6 +31,14 @@ rules:
       atypical presentation is more likely, which argues for a lower threshold
       here than the source guidelines assume. That adjustment is a clinical
       decision and has not been made.
+    # panel review for RF_ACS_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-09
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_ACS_001.md"
 
   - id: RF_AORTIC_001
     label: Possible aortic dissection
@@ -40,6 +48,24 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_AORTIC_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-09
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "clinical guideline review"
+      dossier_path: "docs/verification/panel/RF_AORTIC_001.md"
+      concerns:
+        - "Missed presentation** – The rule will not fire for patients who experience *tearing‑type back pain* without any accompanying chest pain. This is a realistic clinical scenario, especially in low‑resource settings where patients may not describe pain in Western terms."
+        - "Potential over‑referral** – Patients who meet the encoded criteria (chest pain + tearing pain *or* chest pain + radiates to back + sudden onset) but do **not** have aortic dissection may be unnecessarily escalated to emergency imaging or ICU care, incurring unnecessary resource use."
+        - "Schema limitation** – The available predicate set does not include a dedicated flag for “tearing‑type abdominal pain” (e.g., `abdominal_pain_character_tearing_present`). Consequently, the rule cannot fully capture the canonical presentation of aortic dissection without forcing a chest‑pain prerequisite."
+        - "Emergency Physician** argues that the rule should be kept as‑is because:"
+        - "It aligns with guideline‑driven safety (tearing chest pain is a strong indicator of aortic dissection)."
+        - "It avoids false positives in patients who may have other severe abdominal conditions."
+        - "Safety Engineer** argues that the rule should be relaxed to allow detection solely on the combination of `pain_radiates_to_back` and `pain_onset_sudden`, even without chest pain, because:"
+        - "Many aortic dissection patients present with isolated back pain."
+        - "Retaining the chest‑pain gate may lead to missed diagnoses, especially in populations where chest pain is under‑reported."
 
   - id: RF_PE_001
     label: Possible pulmonary embolism

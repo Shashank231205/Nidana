@@ -238,11 +238,19 @@ def _tidy_referral(raw: str) -> str:
     # Models emit U+2011 NON-BREAKING HYPHEN in "clinical-epidemiology".
     text = raw.replace("*", "").replace("‑", "-")  # noqa: RUF001
     # Cut the qualifying clause: everything from "(e.g." or ", who" onward.
-    for marker in ("(", " should ", " to review", " who ", ", who", " that "):
+    # An em dash or " - " introduces the chair's reasoning about why that
+    # specialty; the field wants the specialty alone.
+    for marker in (
+        "(", " should ", " to review", " who ", ", who", " that ",
+        "\N{EM DASH}", "\N{EN DASH}", " - ", " so ", " for ",
+    ):
         position = text.lower().find(marker)
         if position > 0:
             text = text[:position]
     text = text.split(".")[0].strip(" ,-")
+    # "Specialty: Urology" is a label, not a name. Keep what follows the colon.
+    if ":" in text:
+        text = text.split(":", 1)[1].strip()
     # Strip a leading article so the field reads as a role, not a sentence.
     for article in ("a ", "an ", "the "):
         if text.lower().startswith(article):

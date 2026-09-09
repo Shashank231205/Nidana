@@ -50,6 +50,14 @@ rules:
       pregnancy test does not suppress this, and pregnancy_status unknown is
       not treated as not-pregnant.
     verify_before_ship: true
+    # panel review for RF_ECTOPIC_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-09
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "Specialty: Obstetrics/Gynecology"
+      dossier_path: "docs/verification/panel/RF_ECTOPIC_001.md"
 
   - id: RF_OBSTETRIC_BLEED_001
     label: Obstetric bleeding
@@ -61,6 +69,14 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_OBSTETRIC_BLEED_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-09
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_OBSTETRIC_BLEED_001.md"
 
   - id: RF_PRE_ECLAMPSIA_001
     label: Features suggesting pre-eclampsia
@@ -74,6 +90,14 @@ rules:
       encoded here because Consult does not measure blood pressure; this rule
       turns on reported symptoms only.
     verify_before_ship: true
+    # panel review for RF_PRE_ECLAMPSIA_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-09
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_PRE_ECLAMPSIA_001.md"
 
   - id: RF_REDUCED_FETAL_MOVEMENT_001
     label: Reduced or absent fetal movements
@@ -82,6 +106,26 @@ rules:
     action: ESCALATE_BAND
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_REDUCED_FETAL_MOVEMENT_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-09
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_REDUCED_FETAL_MOVEMENT_001.md"
+      concerns:
+        - "Missed Cases (Emergency Physician & Indian Reviewer)**"
+        - "Scenario:** A 32‑year‑old woman at 24 weeks gestation presents with severe abdominal pain radiating to the back, nausea, vomiting, and **no ability to reliably report fetal movements** because she is in severe pain and possibly in shock."
+        - "Why Missed:** The rule’s trigger (fetal_movements_reduced_or_absent AND pregnancy_confirmed_status) does not capture alternative indicators of fetal compromise (e.g., severe pain, vomiting, altered consciousness). In this setting, the patient may not be able to confirm reduced movements, leading to a missed escalation despite a high clinical suspicion of fetal distress."
+        - "Indian Context:** Similar presentations are common in low‑resource settings where fetal distress often occurs without overt pain or bleeding, and reporting mechanisms may be limited."
+        - "Over‑Referral (Safety Engineer)**"
+        - "Scenario:** A 35‑year‑old woman at 20 weeks gestation reports “normal” fetal kick counts (≈10 movements per 24 h) and denies any pain."
+        - "Why Over‑Referral:** The rule’s single condition (reduced or absent movements) may trigger escalation for borderline cases where movement counts are within normal variability but still indicate underlying pathology (e.g., oligohydramnios, placental insufficiency). This could lead to unnecessary labor induction or delivery, incurring resource costs without clinical benefit."
+        - "Schema Gap (All Reviewers)**"
+        - "Issue:** The rule relies solely on the predicate `fetal_movements_reduced_or_absent` without a quantitative threshold (e.g., < 10 movements per 24 h) or additional obstetric criteria (e.g., abdominal tenderness, light vaginal bleeding, oligohydramnios)."
+        - "Consequence:** Without these predicates, the rule cannot reliably distinguish between normal variability and clinically significant reduction, especially in diverse clinical contexts."
+        - "Turning Point:** The choice hinges on balancing **clinical safety** (avoiding missed fetal distress) against **resource efficiency** (preventing unnecessary escalations in settings with limited monitoring capacity)."
 
   - id: RF_TORSION_001
     label: Possible testicular torsion
@@ -94,6 +138,26 @@ rules:
       misrouted; a clinician should confirm whether the criteria here are wide
       enough.
     verify_before_ship: true
+    # panel review for RF_TORSION_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-09
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "Specialty: Urology / Emergency Medicine – to evaluate whether the rule’s sensitivity"
+      dossier_path: "docs/verification/panel/RF_TORSION_001.md"
+      concerns:
+        - "Missed cases** – The rule will not fire for patients who present with severe testicular/groin pain and vomiting but lack any documented chest‑pain component (e.g., younger patients or adults whose pain is described as “throbbing” rather than “radiating to the abdomen”). This includes:"
+        - "Emergency Physician:** A 12‑year‑old male with sudden severe testicular pain, vomiting, but no chest‑pain description."
+        - "Indian Practice Reviewer:** A 45‑year‑old male with gradual onset pain, mild dyspnoea, no vomiting, and no swelling – a presentation common in resource‑constrained Indian settings."
+        - "Over‑referrals** – Patients who truly have acute chest pain (e.g., angina) but no testicular pain will also satisfy the rule, potentially leading to unnecessary termination of the emergency session."
+        - "Schema limitation** – The rule relies on exact phrasing (“radiation”, “abdominal onset sudden”) and on age (< 18) that are not universally captured in patient narratives. This creates a mismatch between clinical reality and the encoded criteria."
+        - "Emergency Physician:** Argues that the rule is sufficient for the typical Western presentation (vomiting + age‑< 18) and that missing younger patients is acceptable because they constitute a smaller proportion of cases."
+        - "Indian Practice Reviewer:** Argues that the rule’s failure to capture atypical presentations (gradual pain, mild dyspnoea, no vomiting) is a serious gap given the prevalence of such presentations in district hospitals and the limited resources for escalation."
+        - "Safety Engineer:** Suggests expanding the rule to include broader pain descriptors (e.g., “throbbing” or “sharp pressure”) and a less restrictive onset condition, but warns that this could increase false‑positive referrals to costly imaging pathways."
+        - "Missed‑case vs. safety‑engineer’s over‑referral concern:** Whether the benefit of catching truly missed torsion cases outweighs the risk of unnecessary escalation to higher‑cost services."
+        - "Missed‑case vs. emergency‑physician’s age‑filter justification:** Whether the age‑< 18 filter is justified or should be removed/expanded to capture older patients with similar presentation patterns."
+        - "Schema gap vs. clinical‑practice gap:** Whether the limitation is primarily a data‑capture issue (schema gap) or a cultural/operational issue specific to Indian district hospitals (practice reviewer’s perspective)."
 
   - id: RF_GI_BLEED_001
     label: Gastrointestinal bleeding
@@ -104,3 +168,17 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_GI_BLEED_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-09
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "Specialty: Emergency Medicine / Critical Care – to evaluate the clinical impact of missed occult GI bleed and decide on"
+      dossier_path: "docs/verification/panel/RF_GI_BLEED_001.md"
+      concerns:
+        - "Missed cases** – The rule will fail to trigger for patients who present with active gastrointestinal bleeding that does **not** include dizziness or fainting, such as:"
+        - "Upper‑GI bleed presenting only with epigastric pain, pallor, and dizziness/fainting (no hematemesis or black stool)."
+        - "Occult bleeding (e.g., peptic ulcer bleed) where the only signs are systemic (dizziness, pallor) and no overt blood‑stool is reported."
+        - "Over‑referrals** – The rule will also fire for patients who have black stool **and** dizziness/fainting (e.g., overt melena), which is a true positive and therefore not an over‑referral."
+        - "Safety implication** – Missing occult upper‑GI bleed can lead to delayed endoscopic intervention, increased morbidity, and potential mortality, especially in patients on antithrombotic therapy or with chronic kidney disease."

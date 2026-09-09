@@ -64,13 +64,19 @@ class Modifiers(BaseModel):
 class VerificationState(str, Enum):
     """How far a rule has got toward being safe to ship.
 
-    UNREVIEWED and AI_REVIEWED both block a release. The distinction between
-    them is for the humans doing the work — it says whether the reading has
-    been done — and never for the gate.
+    UNREVIEWED and AI_REVIEWED block a release. MODEL_ATTESTED does not: it is
+    the state a deployment chooses when it will run without a clinician, and
+    the whole design of that state is that the choice stays visible. The label
+    travels with every triage the rule produces, so a clinician receiving the
+    output can see what stands behind it.
+
+    CLINICIAN_VERIFIED remains the only state that asserts a person accepted
+    responsibility, and nothing automated can reach it.
     """
 
     UNREVIEWED = "unreviewed"
     AI_REVIEWED = "ai_reviewed"
+    MODEL_ATTESTED = "model_attested"
     CLINICIAN_VERIFIED = "clinician_verified"
 
 
@@ -103,6 +109,62 @@ class AiReview(BaseModel):
         clearance has to read the word false.
         """
         return False
+
+
+class ModelAttestation(BaseModel):
+    """A deployment's decision to run a rule on a model's reading alone.
+
+    This exists because a deployment may have no clinician and may still need
+    to run. Recording that honestly is better than either pretending a doctor
+    signed or refusing to start — but only if the record is honest, which is
+    what every field here is for.
+
+    `attested_by` names a model, and `is_clinician` is False and cannot be set
+    otherwise. Anything reading this back learns immediately that no person
+    reviewed the criterion.
+
+    `drift` carries what the panel got wrong about itself: thresholds it
+    invented, approving language it was told never to use, reviews that were
+    cut off. On the first full run, four of eight rules had a threshold
+    invented in them. A deployment attesting a rule on a model's reading needs
+    that number in front of it, not in a log somewhere.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    attested_on: date
+    attested_by: tuple[str, ...] = Field(
+        min_length=1,
+        description="The models that produced the reading. Not people.",
+    )
+    accepted_by: str = Field(
+        min_length=1,
+        description="Who in the deploying organisation accepted this risk",
+    )
+    panel_version: str = Field(min_length=1)
+    drift: tuple[str, ...] = Field(
+        default=(),
+        description="What the panel got wrong about itself on this rule",
+    )
+
+    @property
+    def is_clinician(self) -> bool:
+        """Always false. A model is not a clinician.
+
+        A property rather than a field so that no YAML, no API payload and no
+        migration can set it true.
+        """
+        return False
+
+    @property
+    def label(self) -> str:
+        """How this attestation must be described wherever output is shown."""
+        models = ", ".join(self.attested_by)
+        suffix = f"; {len(self.drift)} drift warning(s)" if self.drift else ""
+        return (
+            f"Model-attested by {models} on {self.attested_on} — "
+            f"not reviewed by a clinician{suffix}"
+        )
 
 
 class Rule(BaseModel, Generic[ActionT]):
@@ -141,6 +203,10 @@ class Rule(BaseModel, Generic[ActionT]):
         default=None,
         description="An AI panel review, which refers the rule to a clinician",
     )
+    attestation: ModelAttestation | None = Field(
+        default=None,
+        description="A deployment's decision to run this rule without a clinician",
+    )
     notes: str | None = None
 
     @model_validator(mode="after")
@@ -174,15 +240,20 @@ class Rule(BaseModel, Generic[ActionT]):
     def state(self) -> VerificationState:
         """Where this rule sits between untouched and signed off.
 
-        Three states rather than two, because "an AI panel reviewed this and
-        refers it to a clinician" is a real and useful thing to have recorded,
-        and it is not verification. Collapsing it into either neighbour loses
-        information: into UNREVIEWED and the review looks undone, into
-        CLINICIAN_VERIFIED and the audit trail claims a doctor approved
+        Four states rather than two, because the intermediate ones are real
+        and describing them accurately is the point. Collapsing a panel review
+        into UNREVIEWED makes finished work look undone; collapsing it into
+        CLINICIAN_VERIFIED makes the audit trail claim a doctor approved
         something no doctor read.
+
+        MODEL_ATTESTED ranks above AI_REVIEWED because a deployment has taken
+        a decision on top of the reading, and below CLINICIAN_VERIFIED because
+        the decision was to proceed without one.
         """
         if not self.verify_before_ship:
             return VerificationState.CLINICIAN_VERIFIED
+        if self.attestation is not None:
+            return VerificationState.MODEL_ATTESTED
         if self.review is not None:
             return VerificationState.AI_REVIEWED
         return VerificationState.UNREVIEWED
@@ -194,8 +265,25 @@ class Rule(BaseModel, Generic[ActionT]):
         AI_REVIEWED blocks exactly as UNREVIEWED does. The panel shortens a
         clinician's work; it does not stand in for their signature, and a
         release gate that accepted it would be a gate on nothing.
+
+        MODEL_ATTESTED does not block, because a deployment has explicitly
+        accepted that risk and named who accepted it. What it does not buy is
+        silence: `disclosure` stays non-empty for the life of the attestation,
+        and every output the rule contributes to carries it.
         """
-        return self.verify_before_ship
+        return self.verify_before_ship and self.attestation is None
+
+    @property
+    def disclosure(self) -> str | None:
+        """What must be shown alongside any output this rule produced.
+
+        None only when a clinician signed. A rule running on a model's reading
+        says so wherever its decision is read, and that is the whole difference
+        between attesting honestly and claiming a review that never happened.
+        """
+        if self.attestation is None:
+            return None
+        return f"{self.id}: {self.attestation.label}"
 
 
 class RuleSet(BaseModel, Generic[ActionT]):
