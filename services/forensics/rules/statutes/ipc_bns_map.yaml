@@ -1,0 +1,202 @@
+# IPC 1860 to BNS 2023 correspondence, for the sections a medico-legal report
+# cites.
+#
+# TRANSCRIBED, NOT LEGALLY REVIEWED. Every row below is copied from the
+# official correspondence table published by the Bureau of Police Research and
+# Development and reproduced by state police forces. That table is itself, in
+# its own words, a reference document and not a statutory instrument: it
+# carries no legal force.
+#
+# What this file is for: a report written before 1 July 2024 cites IPC numbers
+# and a report written after cites BNS numbers, and a reader of the archive
+# needs to know they are the same provision. It answers "what is this section
+# now called". It does not answer "which section applies to this injury" —
+# that is the legal classification question, it is what the service README
+# lists as blocked, and nothing here changes that.
+#
+# The BNS renumbered comprehensively: IPC had 511 sections, BNS has 358, and no
+# section kept its number. A stale number in a medico-legal document is not a
+# cosmetic error; it points a court at the wrong provision.
+#
+# source: Corresponding Section Table of Bharatiya Nyaya Sanhita 2023,
+#   Bureau of Police Research and Development, reproduced at
+#   https://uppolice.gov.in/site/writereaddata/siteContent/Three%20New%20Major%20Acts/202406281710564823BNS_IPC_Comparative.pdf
+# transcribed_on: 2026-09-09
+# legally_reviewed: false
+
+name: forensics_ipc_bns_correspondence
+version: 0.1.0
+commenced: 2024-07-01
+
+sections:
+  # Of hurt. The provisions a wound certificate turns on.
+  - ipc: "319"
+    bns: "114"
+    title: Hurt
+  - ipc: "320"
+    bns: "116"
+    title: Grievous hurt
+    changed: true
+    note: >-
+      The BNS marks this as changed, not merely renumbered. The clinical
+      inputs to the grievous hurt test may therefore differ from the IPC
+      wording a reviewer knows. This is a legal question and is flagged rather
+      than resolved.
+  - ipc: "321"
+    bns: "115(1)"
+    title: Voluntarily causing hurt
+  - ipc: "323"
+    bns: "115(2)"
+    title: Punishment for voluntarily causing hurt
+  - ipc: "322"
+    bns: "117(1)"
+    title: Voluntarily causing grievous hurt
+  - ipc: "325"
+    bns: "117(2)"
+    title: Punishment for voluntarily causing grievous hurt
+  - ipc: "324"
+    bns: "118(1)"
+    title: Voluntarily causing hurt by dangerous weapons or means
+  - ipc: "326"
+    bns: "118(2)"
+    title: Voluntarily causing grievous hurt by dangerous weapons or means
+  - ipc: "326A"
+    bns: "124(1)"
+    title: Voluntarily causing grievous hurt by use of acid
+  - ipc: "326B"
+    bns: "124(2)"
+    title: Voluntarily throwing or attempting to throw acid
+  - ipc: "328"
+    bns: "123"
+    title: Causing hurt by means of poison, with intent to commit an offence
+  - ipc: "337"
+    bns: "125(a)"
+    title: Causing hurt by act endangering life or personal safety of others
+  - ipc: "338"
+    bns: "125(b)"
+    title: Causing grievous hurt by act endangering life or personal safety of others
+
+  # Of offences affecting life.
+  - ipc: "299"
+    bns: "100"
+    title: Culpable homicide
+  - ipc: "300"
+    bns: "101"
+    title: Murder
+  - ipc: "302"
+    bns: "103"
+    title: Punishment for murder
+    changed: true
+  - ipc: "304"
+    bns: "105"
+    title: Punishment for culpable homicide not amounting to murder
+    changed: true
+  - ipc: "304A"
+    bns: "106"
+    title: Causing death by negligence
+    changed: true
+  - ipc: "304B"
+    bns: "80"
+    title: Dowry death
+  - ipc: "305"
+    bns: "107"
+    title: Abetment of suicide of child or person of unsound mind
+  - ipc: "306"
+    bns: "108"
+    title: Abetment of suicide
+  - ipc: "307"
+    bns: "109"
+    title: Attempt to murder
+    changed: true
+  - ipc: "308"
+    bns: "110"
+    title: Attempt to commit culpable homicide
+
+  # Sexual offences. The examination this service documents is protocol
+  # compliance only; these rows exist so an archived report's citation can be
+  # read, not so anything is classified.
+  - ipc: "375"
+    bns: "63"
+    title: Rape
+  - ipc: "376"
+    bns: "64"
+    title: Punishment for rape
+  - ipc: "376(3)"
+    bns: "65(1)"
+    title: Punishment for rape in certain cases
+  - ipc: "376AB"
+    bns: "65(2)"
+    title: Punishment for rape on woman under twelve years of age
+  - ipc: "376A"
+    bns: "66"
+    title: >-
+      Punishment for causing death or resulting in persistent vegetative state
+      of victim
+  - ipc: "376B"
+    bns: "67"
+    title: Sexual intercourse by husband upon his wife during separation
+  - ipc: "376C"
+    bns: "68"
+    title: Sexual intercourse by a person in authority
+  - ipc: "376D"
+    bns: "70(1)"
+    title: Gang rape
+  - ipc: "376DA"
+    bns: "70(2)"
+    title: Punishment for gang rape on woman under sixteen years of age
+    changed: true
+    note: >-
+      IPC 376DA and 376DB both correspond to BNS 70(2), which merges the
+      under-sixteen and under-twelve provisions. A report citing either IPC
+      section maps forward to the same BNS subsection; the reverse direction is
+      therefore not one-to-one.
+  - ipc: "376DB"
+    bns: "70(2)"
+    title: Punishment for gang rape on woman under twelve years of age
+    changed: true
+  - ipc: "376E"
+    bns: "71"
+    title: Punishment for repeat offenders
+  - ipc: "228A"
+    bns: "72"
+    title: Disclosure of identity of victim of certain offences
+  - ipc: "354"
+    bns: "74"
+    title: >-
+      Assault or use of criminal force to woman with intent to outrage her
+      modesty
+  - ipc: "354A"
+    bns: "75"
+    title: Sexual harassment
+  - ipc: "354B"
+    bns: "76"
+    title: Assault or use of criminal force to woman with intent to disrobe
+    changed: true
+  - ipc: "354C"
+    bns: "77"
+    title: Voyeurism
+    changed: true
+  - ipc: "354D"
+    bns: "78"
+    title: Stalking
+  - ipc: "509"
+    bns: "79"
+    title: Word, gesture or act intended to insult modesty of a woman
+
+  # Of causing of miscarriage.
+  - ipc: "312"
+    bns: "88"
+    title: Causing miscarriage
+  - ipc: "313"
+    bns: "89"
+    title: Causing miscarriage without woman's consent
+
+# Deleted by the BNS, with no corresponding section. A report citing one of
+# these is citing a provision that no longer exists, and saying so is more
+# useful than returning nothing.
+repealed:
+  - ipc: "377"
+    title: Unnatural offences
+    note: >-
+      Listed as Deleted in the correspondence table with no BNS counterpart.
+      What that means for a report that cited it is a legal question.

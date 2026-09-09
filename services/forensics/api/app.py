@@ -39,6 +39,7 @@ from services.forensics.clinical.custody import (
     verify_chain,
     was_amended_after_finalisation,
 )
+from services.forensics.clinical.statutes import Correspondence, statute_map
 from spine.audit.events import AuditEvent
 from spine.inference.adapter import InferenceProvider
 from spine.inference.config import InferenceConfig, build_provider, model_spec
@@ -367,4 +368,68 @@ def structure_dictation(
         fabrication_count=built.fabrication_count,
         dropped=tuple(dropped.reason for dropped in built.dropped),
         chain_length=len(examination.chain),
+    )
+
+
+class StatuteResponse(BaseModel):
+    """What a section is called under the other numbering.
+
+    `legally_reviewed` is false on every response and is returned rather than
+    documented, because a caller rendering this into a report needs the caveat
+    beside the number. The correspondence table is a police reference document
+    and carries no legal force of its own.
+
+    `needs_legal_check` marks a row that is more than a renumbering: a section
+    the table records as changed has different wording, so a clinical finding
+    that satisfied the old test may not satisfy the new one.
+    """
+
+    query: str
+    numbering: str
+    matches: tuple[dict[str, object], ...]
+    legally_reviewed: bool = False
+
+
+@app.get("/v1/statutes/{numbering}/{section}")
+def translate_section(numbering: str, section: str) -> StatuteResponse:
+    """Translate a section number across the 2024 renumbering.
+
+    Answers "what is this section called now", which a reader of an archived
+    report needs because the BNS renumbered comprehensively and no section kept
+    its number. It does not answer which section applies to an injury: that is
+    a legal classification, it needs a lawyer, and the service README lists it
+    as blocked.
+
+    The BNS direction can return more than one match, because the BNS merged
+    provisions. Returning only the first would drop a section from the record.
+    """
+    wanted = numbering.lower()
+    if wanted not in {"ipc", "bns"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"numbering must be 'ipc' or 'bns', not {numbering!r}",
+        )
+
+    table = statute_map()
+    if wanted == "ipc":
+        found = table.from_ipc(section)
+        matches: tuple[Correspondence, ...] = (found,) if found is not None else ()
+    else:
+        matches = table.from_bns(section)
+
+    return StatuteResponse(
+        query=section,
+        numbering=wanted,
+        matches=tuple(
+            {
+                "ipc": entry.ipc,
+                "bns": entry.bns,
+                "title": entry.title,
+                "changed": entry.changed,
+                "repealed": entry.repealed,
+                "needs_legal_check": entry.needs_legal_check,
+                "note": entry.note,
+            }
+            for entry in matches
+        ),
     )

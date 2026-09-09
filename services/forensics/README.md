@@ -63,9 +63,23 @@ distinguished from tampering when the record is read back years later.
 ## Blocked
 
 **Statutory classification needs a lawyer, not a clinician.** Simple versus
-grievous hurt is a legal test with medical inputs, and section numbering moved
-from IPC to BNS in 2024. Nothing statutory is implemented rather than
-implemented against numbers that may have changed.
+grievous hurt is a legal test with medical inputs. Nothing classifies an
+injury, and nothing will until a lawyer specifies the test.
+
+The renumbering half of this is now closed, because it was a transcription
+problem rather than a legal one. `rules/statutes/ipc_bns_map.yaml` holds the
+IPC-to-BNS correspondence for the sections a medico-legal report cites,
+transcribed from the Bureau of Police Research and Development's published
+table, and `GET /v1/statutes/{ipc|bns}/{section}` reads it. A report written
+before 1 July 2024 cites IPC numbers and one written after cites BNS numbers
+for the same provision; the archive holds both, and a reader needs to know
+they are the same section.
+
+That table says of itself that it is a reference document carrying no legal
+force, so every response carries `legally_reviewed: false`, and rows the table
+marks as changed rather than merely renumbered carry `needs_legal_check` —
+different wording means a finding that satisfied the old test may not satisfy
+the new one.
 
 **Admissibility is unresolved.** Whether output from this service is admissible
 in any jurisdiction, and what that requires, is a legal question that has not

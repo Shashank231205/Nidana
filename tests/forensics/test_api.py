@@ -334,3 +334,56 @@ class TestStructuring:
             json={"dictation": DICTATION, "actor": ""},
         )
         assert response.status_code == 422
+
+
+class TestStatuteTranslation:
+    """Reading an archived citation across the 2024 renumbering.
+
+    A report written in June 2024 cites IPC numbers and one written in July
+    cites BNS numbers for the same provision. This endpoint answers what a
+    section is called now; it does not classify an injury, and the tests below
+    pin that boundary as much as the transcription.
+    """
+
+    def test_an_ipc_section_translates_forward(self) -> None:
+        response = client().get("/v1/statutes/ipc/320")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["matches"][0]["bns"] == "116"
+        assert body["matches"][0]["title"] == "Grievous hurt"
+
+    def test_a_bns_section_translates_back(self) -> None:
+        response = client().get("/v1/statutes/bns/114")
+        assert response.json()["matches"][0]["ipc"] == "319"
+
+    def test_a_merged_section_returns_every_source(self) -> None:
+        """BNS 70(2) came from two IPC sections.
+
+        Returning one would drop a provision from an archived report.
+        """
+        response = client().get("/v1/statutes/bns/70(2)")
+        assert {m["ipc"] for m in response.json()["matches"]} == {"376DA", "376DB"}
+
+    def test_a_changed_section_is_flagged_for_legal_check(self) -> None:
+        """Renumbering and rewording are different problems."""
+        body = client().get("/v1/statutes/ipc/320").json()
+        assert body["matches"][0]["needs_legal_check"]
+
+    def test_a_repealed_section_says_so(self) -> None:
+        body = client().get("/v1/statutes/ipc/377").json()
+        assert body["matches"][0]["repealed"]
+        assert body["matches"][0]["bns"] is None
+
+    def test_an_unknown_section_returns_no_match_rather_than_a_guess(self) -> None:
+        body = client().get("/v1/statutes/ipc/420").json()
+        assert body["matches"] == []
+
+    def test_the_response_never_claims_legal_review(self) -> None:
+        """The caveat travels with the number, not in a file nobody reads."""
+        for path in ("/v1/statutes/ipc/319", "/v1/statutes/bns/116"):
+            assert client().get(path).json()["legally_reviewed"] is False
+
+    def test_an_unknown_numbering_is_refused(self) -> None:
+        response = client().get("/v1/statutes/epc/319")
+        assert response.status_code == 400
+        assert "ipc" in response.json()["detail"]
