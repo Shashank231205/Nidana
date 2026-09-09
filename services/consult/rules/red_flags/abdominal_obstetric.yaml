@@ -18,6 +18,21 @@ rules:
       fact from constipation. The field registry states this so the intake agent
       asks for it specifically.
     verify_before_ship: true
+    # panel review for RF_PERITONISM_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-09
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_PERITONISM_001.md"
+      concerns:
+        - "Missed Patient Profile – A 45‑year‑old male with a sudden, severe epigastric pain radiating to the left lower quadrant, nausea, and vomiting, but with diffuse epigastric discomfort rather than localized tenderness. The rule’s first branch (tenderness + pain‑worsened‑by‑movement) is not satisfied."
+        - "Edge‑Case Miss – A 62‑year‑old male with chronic kidney disease, known diverticulitis, and absent bowel sounds but no vomiting; the rule’s third branch (bowels absent + vomiting) fails."
+        - "Potential Over‑Referral – A 35‑year‑old male with mild gastroenteritis, diffuse pain, and vomiting; the rule’s first branch fires, potentially escalating a non‑acute case."
+        - "Emergency Physician vs. Indian Practice Reviewer"
+        - "Emergency Physician*: Argues that the rule’s failure stems from a lack of “pain‑worsened‑by‑movement” reporting, which is a common Western descriptor for peritonitis."
+        - "Indian Practice Reviewer*: Points out that many Indian patients describe pain as diffuse crampy or radiating, and vomiting may be minimal or not captured as “vomiting_present.” The rule’s schema (tenderness + pain‑worsened‑by‑movement) may therefore miss a substantial subset of cases, especially those caused by H. pylori‑related perforation or septic peritonitis that do not meet the Western pain description."
 
   - id: RF_ECTOPIC_001
     label: Possible ectopic pregnancy

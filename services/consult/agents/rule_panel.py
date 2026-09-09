@@ -150,6 +150,34 @@ def seat_looks_truncated(text: str) -> bool:
     return text.rstrip()[-1] not in ".!?)`\"'*"
 
 
+def _is_heading(line: str) -> str | None:
+    """The heading text of a line, if it is one.
+
+    Models write section headings three ways in practice: as Markdown headings,
+    as a bold line on its own, and as a bold line with a parenthetical — the
+    first real run produced "**Agreement (All Seats)**" where the prompt asked
+    for "### What the panel agrees on". Recognising only the first found no
+    concerns at all in a brief that was full of them.
+    """
+    stripped = line.strip()
+    if not stripped:
+        return None
+    if stripped.startswith("#"):
+        return stripped.lstrip("# ").strip()
+    if stripped.startswith("**") and stripped.rstrip(" :").endswith("**"):
+        return stripped.strip("*").strip(" :")
+    return None
+
+
+CONCERN_HEADINGS: Final[tuple[str, ...]] = ("agree", "disagree", "conflict", "concern")
+"""Words that mark a section holding the panel's findings.
+
+Both agreements and disagreements count. A disagreement is a finding — often
+the most useful one — and a parser that collected only consensus would drop
+exactly what the chair was asked to preserve.
+"""
+
+
 def extract_concerns(brief: str, limit: int = 12) -> tuple[str, ...]:
     """The chair's numbered concerns, as lines.
 
@@ -161,16 +189,20 @@ def extract_concerns(brief: str, limit: int = 12) -> tuple[str, ...]:
     concerns: list[str] = []
     in_section = False
     for raw in brief.splitlines():
-        line = raw.strip()
-        lowered = line.lower()
-        if lowered.startswith("#"):
-            in_section = "agree" in lowered or "disagree" in lowered
+        heading = _is_heading(raw)
+        if heading is not None:
+            lowered = heading.lower()
+            in_section = any(word in lowered for word in CONCERN_HEADINGS)
             continue
+        line = raw.strip()
         if not in_section or not line:
             continue
         stripped = line.lstrip("0123456789.-* ").strip()
         if stripped and stripped != line:
-            concerns.append(stripped)
+            # Numbered items often open with a bold label — "1. **Missed
+            # Patient Profile** - ..." — and the closing asterisks survive the
+            # lstrip. Left in, every concern reads as broken markup.
+            concerns.append(stripped.replace("**", "").strip())
         if len(concerns) >= limit:
             break
     return tuple(concerns)
@@ -191,7 +223,8 @@ def extract_referral(brief: str) -> str:
     """
     lines = brief.splitlines()
     for index, raw in enumerate(lines):
-        if not raw.strip().lower().lstrip("# ").startswith("refer to"):
+        heading = _is_heading(raw)
+        if heading is None or not heading.lower().startswith("refer to"):
             continue
         for following in lines[index + 1 : index + 4]:
             candidate = following.strip().lstrip("-*0123456789. ").strip()

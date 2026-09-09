@@ -293,3 +293,49 @@ class TestTheReferralIsReadable:
 
     def test_nothing_usable_falls_back_rather_than_returning_a_fragment(self) -> None:
         assert extract_referral("### Refer to\n(") == DEFAULT_REFERRAL
+
+
+class TestConcernsSurviveRealFormatting:
+    """What the model actually wrote on the first full run.
+
+    The prompt asks for "### What the panel agrees on". The model wrote
+    "**Agreement (All Seats)**". A parser recognising only Markdown headings
+    found zero concerns in a brief that was full of them, and the review
+    recorded on the rule would have said the panel raised nothing.
+    """
+
+    BOLD_HEADINGS = """**=== RF_PERITONISM_001 - Panel Brief ===**
+
+**Headline:** the rule misses patients who do not report pain on movement.
+
+**Agreement (All Seats)**
+1. **Missed Patient Profile** - a 45-year-old with diffuse epigastric pain.
+2. **Edge-Case Miss** - absent bowel sounds without vomiting fires nothing.
+
+**Disagreement (Where Seats Conflict)**
+- Emergency physician versus Indian practice reviewer on pain description.
+
+**Refer to**
+Emergency physician.
+"""
+
+    def test_bold_headings_are_recognised(self) -> None:
+        assert extract_concerns(self.BOLD_HEADINGS)
+
+    def test_both_agreements_and_disagreements_are_collected(self) -> None:
+        """A disagreement is a finding, often the most useful one."""
+        concerns = extract_concerns(self.BOLD_HEADINGS)
+        assert any("Missed Patient Profile" in c for c in concerns)
+        assert any("versus Indian practice reviewer" in c for c in concerns)
+
+    def test_the_headline_is_not_collected_as_a_concern(self) -> None:
+        assert not any("misses patients who do not report" in c for c in extract_concerns(
+            self.BOLD_HEADINGS
+        ))
+
+    def test_bold_markers_do_not_survive_into_the_record(self) -> None:
+        """A concern reading '**Missed Profile** - ...' is broken markup."""
+        assert not any("**" in c for c in extract_concerns(self.BOLD_HEADINGS))
+
+    def test_a_bold_referral_heading_is_found(self) -> None:
+        assert extract_referral(self.BOLD_HEADINGS) == "Emergency physician"
