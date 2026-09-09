@@ -19,13 +19,13 @@ Written 2026-09-08. Repository: `https://github.com/Shashank231205/Nidana`
 
 ## Where things stand
 
-66 commits, 1,034 tests passing, nothing skipped. `mypy --strict` clean across
-161 files, ruff clean, all four architectural boundaries hold, CI green.
+76 commits, 1,205 tests passing, nothing skipped. `mypy --strict` clean across
+175 files, ruff clean, all four architectural boundaries hold, CI green.
 
 Verify with:
 
 ```bash
-python -m pytest                        # 1034
+python -m pytest                        # 1205
 python -m ruff check .
 python -m mypy .
 python scripts/verify_rules.py
@@ -58,10 +58,10 @@ the user has been told why.
 
 | # | Item | State |
 |---|---|---|
-| 1 | Clinical verification of 30 rules + 10 thresholds | **60%** — research + dossiers done, signature outstanding |
+| 1 | Clinical verification of 30 rules + 10 thresholds | **80%** — citations, dossiers, review panel; signature outstanding |
 | 2 | Vignette sets | **0%** — needs clinician reference labels |
-| 3 | Forensics statutory mapping (IPC->BNS) | **70%** — renumbering done; classification still needs a lawyer |
-| 4 | Brand-to-molecule + drug interaction datasets | **60%** — brands done from open data; interactions blocked on a licence decision |
+| 3 | Forensics statutory mapping (IPC->BNS) | **70%** — renumbering done; classification needs a lawyer |
+| 4 | Brand-to-molecule + drug interaction datasets | **85%** — brands done; interaction checker built, dataset is a licence decision |
 | 5 | ASR inference | **done** |
 | 6 | OCR for Rx | **done** |
 | 7 | Specialty + Capability enums | **done** |
@@ -159,6 +159,42 @@ not the signature.
 
 ---
 
+## The verification pipeline, and the one step it cannot take
+
+The user asked repeatedly whether an agent could stand in for the clinician and
+the lawyer. Most of the way, yes. The last step, no — and the shape of that is
+now built rather than argued about.
+
+**Three states, not two.** `VerificationState` is UNREVIEWED, AI_REVIEWED,
+CLINICIAN_VERIFIED. The middle one records the true and useful fact that a
+panel has read a rule and refers it onward. It is visible to the people doing
+the work and invisible to the release gate: `blocks_release` returns
+`verify_before_ship` unchanged, so an AI-reviewed rule stops a build exactly as
+an untouched one does. `AiReview.clears_release` returns the literal word false
+so that any code tempted to treat a review as clearance has to read it.
+
+**The panel** (`services/consult/agents/rule_panel.py`, prompt 1.0.0). Three
+seats and a chair: emergency physician, safety engineer, Indian practice
+reviewer. The seats find different things — the missed patient, the rule
+interaction, the reason a Western threshold does not transfer — and one
+reviewer asked to do all three produces the first and gestures at the rest. The
+chair's job is to **keep the disagreements**, not resolve them; averaging them
+would cost three model calls and buy a paragraph that decides nothing.
+
+Verified on a real run over RF_ANAPHYLAXIS_001: the panel found the missing
+circulation branch independently, and the chair reported the sensitivity /
+specificity disagreement with what the choice turns on.
+
+**The signature** is `scripts/sign_off_rule.py`, which a person runs with
+`--by` naming themselves and `--source` naming what they relied on. It refuses
+without both. That is the only thing in the repository that clears
+`verify_before_ship`, and nothing a model can reach touches it.
+
+`--list` shows all three states and ends by saying how many rules block a
+release, so the distinction cannot be lost while reading.
+
+---
+
 ## Environment gotchas that cost real time
 
 **Avast intercepts TLS.** It re-signs pypi.org and huggingface.co with its own
@@ -241,30 +277,35 @@ against my guesses.
    `RF_ANAPHYLAXIS_001` has no circulation branch, so a faint, clammy patient
    after an exposure with no airway feature does not fire it.
 
-2. **Frontend.** `web/` holds 14 uncommitted vanilla files — a complete design
-   system built to a spec the user supplied (institutional print, Archivo +
-   Newsreader self-hosted, 5-colour urgency palette, 7 screens). All screens
-   were rendered and screenshotted at 1440px and 320px. **The user chose React +
-   Vite** and asked to finish the backend first. `tokens.css`, `base.css` and
-   `api.js` port unchanged.
+2. ~~**The rule review panel.**~~ **Done** — three seats and a chair, plus
+   `scripts/sign_off_rule.py` for the signature. See the section above.
 
-   Do not commit `web/` without asking — the user deliberately deferred it.
+3. **Drug interactions — a licence decision, not engineering.** The checker is
+   built and wired: `services/rx/clinical/interactions.py`, source-agnostic,
+   reporting what it did *not* check. What is missing is a dataset. DDInter has
+   the best data and is **CC BY-NC-SA 4.0** — fine non-commercially, not usable
+   commercially without permission. RxNorm is public domain but its interaction
+   API was discontinued in January 2024. DrugBank is licensed. The prediction
+   datasets should not be used at all. See
+   `services/rx/rules/interactions/CANDIDATES.md`. **The owner decides.**
 
-3. **Drug interactions — a licence decision, not an engineering one.**
-   `services/rx/rules/interactions/CANDIDATES.md`. DDInter has the best data
-   (236,834 interactions with mechanism, severity and management) but is
-   **CC BY-NC-SA 4.0**: non-commercial only, share-alike on derivatives. RxNorm
-   is public domain but its interaction API was discontinued in January 2024
-   and it now supplies normalisation only. DrugBank is commercially licensed.
-   The prediction datasets (TWOSIDES, BIOSNAP) should not be used — a predicted
-   interaction shown to a pharmacist with the weight of a documented one is the
-   failure this service exists to avoid. **The owner decides whether CC BY-NC-SA
-   fits.** Nothing has been downloaded.
+4. ~~**Diarisation for Scribe.**~~ **Done** —
+   `services/scribe/asr/diarisation.py`, pyannote on CPU. UNKNOWN is a
+   first-class outcome throughout: a split segment, a single voice, too few
+   turns, or two voices asking equally all decline to attribute rather than
+   guessing.
 
-4. **Diarisation for Scribe.** Consult has one speaker; Scribe has several. A
-   separate model and a separate decision.
+5. ~~**Facility index.**~~ **Done** —
+   `services/consult/clinical/facilities.py`. No partial matches, distance
+   orders but never qualifies, an empty result is a real answer, and staleness
+   is reported with every referral. No index ships; the README says why.
 
-5. **Facility index.** Routing matches on capability, and nothing supplies the
+6. **Run the panel over all 30 rules.** About five minutes each on a 3B model,
+   so roughly two hours. `python scripts/review_rules.py`.
+
+7. **Frontend.** The React + Vite port. `web/` still holds 14 uncommitted
+   vanilla files; `tokens.css`, `base.css` and `api.js` carry over unchanged.
+   Do not commit `web/` without asking.
    facilities yet.
 
 ---
