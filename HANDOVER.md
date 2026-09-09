@@ -19,13 +19,13 @@ Written 2026-09-08. Repository: `https://github.com/Shashank231205/Nidana`
 
 ## Where things stand
 
-60 commits, 957 tests passing, nothing skipped. `mypy --strict` clean across
-153 files, ruff clean, all four architectural boundaries hold, CI green.
+66 commits, 1,034 tests passing, nothing skipped. `mypy --strict` clean across
+161 files, ruff clean, all four architectural boundaries hold, CI green.
 
 Verify with:
 
 ```bash
-python -m pytest                        # 957
+python -m pytest                        # 1034
 python -m ruff check .
 python -m mypy .
 python scripts/verify_rules.py
@@ -43,9 +43,9 @@ refusal is correct and has been verified.
 |---|---|---|
 | Consult | 7 | Runs end to end |
 | Scribe | 5 | Draft, sign, groundedness gate |
-| Rx | 3 | OCR, read, checks |
+| Rx | 3 | OCR, read, checks, brand resolution live |
 | Labs | 4 | Extract, threshold, list |
-| Forensics | 7 | Custody chain, structuring |
+| Forensics | 8 | Custody chain, structuring, IPC->BNS lookup |
 
 8 prompts, 2,326 lines. 14 agent modules.
 
@@ -58,10 +58,10 @@ the user has been told why.
 
 | # | Item | State |
 |---|---|---|
-| 1 | Clinical verification of 30 rules + 10 thresholds | **30%** — research done, see below |
+| 1 | Clinical verification of 30 rules + 10 thresholds | **60%** — research + dossiers done, signature outstanding |
 | 2 | Vignette sets | **0%** — needs clinician reference labels |
-| 3 | Forensics statutory mapping (IPC→BNS) | **0%** — needs a lawyer |
-| 4 | Brand-to-molecule + drug interaction datasets | **0%** — licensed data |
+| 3 | Forensics statutory mapping (IPC->BNS) | **70%** — renumbering done; classification still needs a lawyer |
+| 4 | Brand-to-molecule + drug interaction datasets | **60%** — brands done from open data; interactions blocked on a licence decision |
 | 5 | ASR inference | **done** |
 | 6 | OCR for Rx | **done** |
 | 7 | Specialty + Capability enums | **done** |
@@ -124,6 +124,38 @@ organ systems the complaint does not name, orders by danger rather than
 likelihood, and requires the serious possibility being argued *against* to be
 written down. Measured on live Ollama models: granite4.1:3b went from 1 entry
 to 4 across 4 organ systems.
+
+---
+
+## What open data closed, and what it did not
+
+The user asked whether free sources and models could replace the clinician and
+the lawyer. Partly, and the split is worth keeping straight.
+
+**Closed by open data.** Brand-to-molecule resolution: the Indian Medicine
+Dataset is MIT-licensed, 253,973 products, and `scripts/build_brand_index.py`
+turns it into 175,953 brands with zero rows unparsed. Rx now answers
+`brand_resolution_available: true`. And the IPC-to-BNS renumbering: the Bureau
+of Police Research and Development publishes the correspondence table, which is
+transcription rather than legal reasoning.
+
+**Not closed, and not closeable this way.** The thresholds. The research found
+there is *no* internationally agreed critical value list — low potassium spans
+2.5-3.0 mmol/L across institutions, sodium 110-130, haemoglobin 6-8 g/dL. There
+is no fact to retrieve. A model asked to settle it produces a number whose only
+provenance is the model, and in the audit log that is indistinguishable from a
+verified one.
+
+The medical-model idea was checked rather than assumed: the 2023-24 wave of
+open medical fine-tunes (Meditron, OpenBioLLM, BioMistral, PMC-LLaMA) has been
+overtaken by frontier generalists, with the small specialists now trailing
+general-purpose Qwen2.5-32B on aggregate medical benchmarks. The models that
+would run locally here are worse at this than the general ones, and MedQA
+scores measure exam questions, which have correct answers. These thresholds do
+not.
+
+So the dossier builder was built instead: everything up to the signature, and
+not the signature.
 
 ---
 
@@ -197,14 +229,15 @@ against my guesses.
 ## Next, in the order I would do it
 
 1. ~~**The research pass for the 31 red flag rules.**~~ **Done** —
-   `services/consult/rules/red_flags/CANDIDATES.md`. Nine rules map onto current
-   published guidance (NG232, IMCI, NG126, FOGSI, RCUK, EAU, NG128, NG51,
-   Ottawa); eleven were not researched, each named with why. No rule modified,
-   30/31 flags still set.
+   `services/consult/rules/red_flags/CANDIDATES.md` (citations) and
+   `scripts/build_verification_dossiers.py` (a per-rule dossier assembling the
+   criteria, the corpus passages, and the four questions no passage answers).
+   Run against the real index: 30 dossiers, corpus silent on 19. No flag
+   changed.
 
-   Three things in it a clinician should see first: NG225 argues against the
-   `escalate_if` modifier on `RF_SUICIDE_RISK_001`; NG232 excludes aspirin
-   monotherapy where `anticoagulant_use_present` may not; and
+   Three things in the citations file a clinician should see first: NG225
+   argues against the `escalate_if` modifier on `RF_SUICIDE_RISK_001`; NG232
+   excludes aspirin monotherapy where `anticoagulant_use_present` may not; and
    `RF_ANAPHYLAXIS_001` has no circulation branch, so a faint, clammy patient
    after an exposure with no airway feature does not fire it.
 
@@ -217,10 +250,21 @@ against my guesses.
 
    Do not commit `web/` without asking — the user deliberately deferred it.
 
-3. **Diarisation for Scribe.** Consult has one speaker; Scribe has several. A
+3. **Drug interactions — a licence decision, not an engineering one.**
+   `services/rx/rules/interactions/CANDIDATES.md`. DDInter has the best data
+   (236,834 interactions with mechanism, severity and management) but is
+   **CC BY-NC-SA 4.0**: non-commercial only, share-alike on derivatives. RxNorm
+   is public domain but its interaction API was discontinued in January 2024
+   and it now supplies normalisation only. DrugBank is commercially licensed.
+   The prediction datasets (TWOSIDES, BIOSNAP) should not be used — a predicted
+   interaction shown to a pharmacist with the weight of a documented one is the
+   failure this service exists to avoid. **The owner decides whether CC BY-NC-SA
+   fits.** Nothing has been downloaded.
+
+4. **Diarisation for Scribe.** Consult has one speaker; Scribe has several. A
    separate model and a separate decision.
 
-4. **Facility index.** Routing matches on capability, and nothing supplies the
+5. **Facility index.** Routing matches on capability, and nothing supplies the
    facilities yet.
 
 ---
