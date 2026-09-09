@@ -78,8 +78,22 @@ ignore_missing_imports = true
 
 # faster-whisper and huggingface_hub ship no py.typed marker. Both are optional
 # extras used behind an interface this repo defines and types itself.
+#
+# pyannote.audio and torch are the same case and are additionally heavy: torch
+# alone is a 2GB download, and CI does not install it. The diarisation module
+# imports both lazily behind a Protocol this repo defines, so their absence
+# costs nothing but an unresolved name here.
 [[tool.mypy.overrides]]
-module = ["faster_whisper.*", "huggingface_hub.*", "pytesseract.*", "PIL.*"]
+module = [
+    "faster_whisper.*",
+    "huggingface_hub.*",
+    "pytesseract.*",
+    "PIL.*",
+    "pyannote",
+    "pyannote.*",
+    "torch",
+    "torch.*",
+]
 ignore_missing_imports = true
 
 # FastAPI's route decorators are untyped in some versions. The handlers
