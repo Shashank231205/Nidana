@@ -34,13 +34,21 @@ from services.consult.agents.rule_critic import (
     build_brief,
     find_approving_language,
     find_proposed_thresholds,
-    looks_truncated,
 )
 from spine.inference.adapter import InferenceProvider
 from spine.inference.prompts import Prompt, spec_for
 from spine.schemas.rule import ActionT, AiReview, Rule
 
 PANEL_VERSION: Final[str] = "1.0.0"
+SEAT_CLOSING_SECTION: Final[str] = "the one decision"
+"""The last heading a reviewer seat is asked for.
+
+Different from the chair's, which is "Questions for the verifying clinician".
+Checking a seat against the chair's heading marked every seat truncated on the
+first real run, when in fact all three had finished their argument — a false
+warning on every rule would train a reader to ignore the warnings, which are
+the part that matters.
+"""
 
 SEATS: Final[tuple[tuple[str, str], ...]] = (
     (
@@ -128,6 +136,20 @@ class PanelResult:
         return True
 
 
+def seat_looks_truncated(text: str) -> bool:
+    """Whether a reviewer seat was cut off before finishing its argument.
+
+    A seat closes on its own heading rather than the chair's, so this cannot
+    reuse the chair's check. Both signals still apply: the closing section
+    never appeared, or the text stops mid-sentence.
+    """
+    if not text:
+        return True
+    if SEAT_CLOSING_SECTION not in text.lower():
+        return True
+    return text.rstrip()[-1] not in ".!?)`\"'*"
+
+
 def extract_concerns(brief: str, limit: int = 12) -> tuple[str, ...]:
     """The chair's numbered concerns, as lines.
 
@@ -160,6 +182,12 @@ def extract_referral(brief: str) -> str:
     Looked for under the heading rather than anywhere in the text, because the
     word "cardiology" appears in a cardiology rule's brief many times without
     being the referral.
+
+    Models write this line as prose — "A **clinical-epidemiology / emergency
+    medicine** specialist (e.g. an allergy specialist) should review..." — so
+    the sentence is cut back to the specialty itself. Truncating at a fixed
+    character count instead produced "(e" on the end of a real run, which is
+    worse than the default: it looks like a specialty and is not one.
     """
     lines = brief.splitlines()
     for index, raw in enumerate(lines):
@@ -168,8 +196,29 @@ def extract_referral(brief: str) -> str:
         for following in lines[index + 1 : index + 4]:
             candidate = following.strip().lstrip("-*0123456789. ").strip()
             if candidate and not candidate.startswith("#"):
-                return candidate.split(".")[0].strip()[:120] or DEFAULT_REFERRAL
+                return _tidy_referral(candidate)
     return DEFAULT_REFERRAL
+
+
+def _tidy_referral(raw: str) -> str:
+    """Reduce a sentence about who should review to the specialty itself."""
+    # Models emit U+2011 NON-BREAKING HYPHEN in "clinical-epidemiology".
+    text = raw.replace("*", "").replace("‑", "-")  # noqa: RUF001
+    # Cut the qualifying clause: everything from "(e.g." or ", who" onward.
+    for marker in ("(", " should ", " to review", " who ", ", who", " that "):
+        position = text.lower().find(marker)
+        if position > 0:
+            text = text[:position]
+    text = text.split(".")[0].strip(" ,-")
+    # Strip a leading article so the field reads as a role, not a sentence.
+    for article in ("a ", "an ", "the "):
+        if text.lower().startswith(article):
+            text = text[len(article) :]
+            break
+    cleaned = text.strip()[:120]
+    # A fragment with no letters is not a specialty, and returning one would
+    # put something that looks like an answer into the review record.
+    return cleaned if any(c.isalpha() for c in cleaned) else DEFAULT_REFERRAL
 
 
 def _run_seat(
@@ -194,7 +243,7 @@ def _run_seat(
         model_version=completion.model_version,
         approving=find_approving_language(text),
         proposed_thresholds=find_proposed_thresholds(text),
-        truncated=looks_truncated(text),
+        truncated=seat_looks_truncated(text),
     )
 
 

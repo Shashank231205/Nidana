@@ -57,8 +57,8 @@ SEAT_TEXT = """## RF_ACS_001 — emergency physician
 ### Misses
 **58-year-old woman, diabetic 12 years.** Nausea and sweating, no chest pain.
 
-### Questions for the verifying clinician
-1. Should chest pain be required at all?
+### The one decision I would put to a clinician
+Should chest pain be required at all?
 """
 
 
@@ -262,3 +262,34 @@ class TestRendering:
     def test_a_clean_panel_renders_no_warning(self) -> None:
         result, _ = panel(SEAT_TEXT, SEAT_TEXT, SEAT_TEXT, BRIEF)
         assert "Warning" not in render(result)
+
+
+class TestTheReferralIsReadable:
+    """What a real model wrote on the first run, and why it needed cutting back.
+
+    The chair writes this as a sentence. Truncating it at a character count
+    produced "A **clinical-epidemiology / emergency medicine** specialist (e"
+    in the review record — which looks like a specialty, is not one, and would
+    have been read as the panel's considered answer.
+    """
+
+    def test_a_prose_referral_is_reduced_to_the_specialty(self) -> None:
+        brief = (
+            "### Refer to\n"
+            "A **clinical\N{NON-BREAKING HYPHEN}epidemiology / emergency medicine** specialist "
+            "(e.g., emergency physician or allergy specialist) should review the rule."
+        )
+        assert extract_referral(brief) == "clinical-epidemiology / emergency medicine specialist"
+
+    def test_a_leading_article_is_dropped(self) -> None:
+        assert extract_referral("### Refer to\nAn allergy specialist.") == "allergy specialist"
+
+    def test_a_trailing_clause_is_dropped(self) -> None:
+        brief = "### Refer to\nEmergency physician, who should confirm the criteria."
+        assert extract_referral(brief) == "Emergency physician"
+
+    def test_a_bare_specialty_survives_unchanged(self) -> None:
+        assert extract_referral("### Refer to\nNephrologist") == "Nephrologist"
+
+    def test_nothing_usable_falls_back_rather_than_returning_a_fragment(self) -> None:
+        assert extract_referral("### Refer to\n(") == DEFAULT_REFERRAL

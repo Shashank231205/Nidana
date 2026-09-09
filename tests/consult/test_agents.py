@@ -84,6 +84,7 @@ class TestPromptLoading:
             "triage_agent",
             "safety_critic",
             "rule_critic",
+            "rule_panel",
         }
 
     def test_each_prompt_carries_a_version(self) -> None:
