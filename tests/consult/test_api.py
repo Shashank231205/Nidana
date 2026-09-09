@@ -340,3 +340,62 @@ class TestConsent:
             json={"granted": True},
         )
         assert response.status_code == 404
+
+
+ATTESTED = (
+    "RF_X: Model-attested by granite4.1:3b on 2026-09-10 "
+    "— not reviewed by a clinician"
+)
+
+
+class TestDisclosure:
+    """What a client is told when a rule runs on a model's reading.
+
+    The attestation state is only defensible while the admission travels. A
+    band produced partly by criteria no clinician read, presented as though it
+    were not, is exactly what the state exists to prevent — so the disclosure
+    has to reach the response, not a log.
+    """
+
+    def test_a_clinician_verified_deployment_discloses_nothing(
+        self, client: TestClient
+    ) -> None:
+        body = client.get("/health").json()
+        assert body["model_attested_rules"] == 0
+        assert body["disclosures"] == []
+
+    def test_health_reports_attested_rules(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(api, "_disclosures", lambda: (ATTESTED,))
+        body = client.get("/health").json()
+        assert body["model_attested_rules"] == 1
+        assert "not reviewed by a clinician" in body["disclosures"][0]
+
+    def test_a_turn_carries_the_disclosure(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A client rendering a triage outcome must be able to show this."""
+        monkeypatch.setattr(api, "_disclosures", lambda: (ATTESTED,))
+        session_id = client.post("/v1/sessions", json={}).json()["session_id"]
+        client.post(
+            f"/v1/sessions/{session_id}/consent",
+            json={"granted": True, "text_version": "1.0.0"},
+        )
+        response = client.post(
+            f"/v1/sessions/{session_id}/turns", json={"utterance": "my chest hurts"}
+        )
+        assert response.json()["disclosures"] == [ATTESTED]
+
+    def test_a_turn_in_a_verified_deployment_discloses_nothing(
+        self, client: TestClient
+    ) -> None:
+        session_id = client.post("/v1/sessions", json={}).json()["session_id"]
+        client.post(
+            f"/v1/sessions/{session_id}/consent",
+            json={"granted": True, "text_version": "1.0.0"},
+        )
+        response = client.post(
+            f"/v1/sessions/{session_id}/turns", json={"utterance": "my chest hurts"}
+        )
+        assert response.json()["disclosures"] == []

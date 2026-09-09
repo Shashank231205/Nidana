@@ -42,6 +42,7 @@ from spine.rules.predicate_loader import (
 )
 from spine.rules.registry_loader import load_all as load_registries
 from spine.rules.rule_loader import (
+    disclosures,
     load_rule_sets,
     require_verified,
     resolve_atoms,
@@ -176,7 +177,14 @@ class TurnRequest(BaseModel):
 
 
 class TurnResponse(BaseModel):
-    """One of three shapes. The client renders on `shape`, never on a status."""
+    """One of three shapes. The client renders on `shape`, never on a status.
+
+    `disclosures` is empty in a deployment whose rules a clinician signed. Where
+    it is not, it names every rule in force that runs on a model's reading
+    instead, and a client showing a triage outcome must show these with it. A
+    band produced partly by unreviewed criteria and presented as though it were
+    not is the failure the attestation state exists to prevent.
+    """
 
     shape: TurnShape
     session_id: UUID
@@ -184,6 +192,7 @@ class TurnResponse(BaseModel):
     question: str | None = None
     emergency: dict[str, object] | None = None
     triage: dict[str, object] | None = None
+    disclosures: tuple[str, ...] = ()
 
 
 class SessionResponse(BaseModel):
@@ -202,7 +211,20 @@ def _to_response(result: TurnResult) -> TurnResponse:
         question=result.question,
         emergency=result.emergency.model_dump(mode="json") if result.emergency else None,
         triage=result.triage.model_dump(mode="json") if result.triage else None,
+        disclosures=_disclosures(),
     )
+
+
+def _disclosures() -> tuple[str, ...]:
+    """Every rule in force that runs on a model's reading rather than a signature.
+
+    Recomputed per response rather than cached at startup. It is cheap, and a
+    cached empty tuple surviving a rule change would be the one failure mode
+    that matters here: silence where a disclosure was due.
+    """
+    if _dependencies is None:
+        return ()
+    return disclosures(_dependencies.rule_sets)
 
 
 @app.get("/health")
@@ -213,9 +235,14 @@ def health() -> dict[str, object]:
     container that started but cannot triage fails its healthcheck.
     """
     ready = _dependencies is not None
+    attested = _disclosures()
     return {
         "status": "healthy" if ready else "degraded",
         "rules_loaded": ready,
+        # Visible without running a session, so an operator can see what this
+        # instance is running on before a patient does.
+        "model_attested_rules": len(attested),
+        "disclosures": list(attested),
         "active_sessions": len(_sessions),
     }
 

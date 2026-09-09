@@ -70,16 +70,27 @@ def main() -> int:
         print(f"\n{problems} problem(s). See services/consult/rules/ and clinical/.")
         return 1
 
-    total = len(all_rules(rule_sets))
-    unverified = sum(1 for rule in all_rules(rule_sets) if rule.is_unverified)
+    rules = all_rules(rule_sets)
+    total = len(rules)
+    blocking = sum(1 for rule in rules if rule.blocks_release)
+    attested = sum(1 for rule in rules if rule.attestation is not None)
     print(
         f"OK: {len(registries)} registries, {len(predicates)} predicates, {total} rules, "
         f"every atom resolves and every rule is reachable."
     )
-    if unverified:
+    if blocking:
         print(
-            f"NOTE: {unverified}/{total} rules carry verify_before_ship and cannot ship "
-            f"to production until a clinician verifies each criterion."
+            f"NOTE: {blocking}/{total} rules block a production release and cannot ship "
+            f"until a clinician verifies each criterion."
+        )
+    # Counted separately from the blocking total rather than folded into it. An
+    # attested rule ships, so reporting it as blocked would be wrong; reporting
+    # only the blocking count would hide that some rules ship on a model's
+    # reading, which is the more important of the two facts.
+    if attested:
+        print(
+            f"NOTE: {attested}/{total} rules ship on a model's reading with no "
+            f"clinician review. Every triage they contribute to discloses that."
         )
     return 0
 
