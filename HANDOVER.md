@@ -196,11 +196,17 @@ against my guesses.
 
 ## Next, in the order I would do it
 
-1. **The same research pass for the 31 red flag rules.** Their *logic* is
-   clinically sound already — the criteria combinations are real. Only the
-   `source:` lines are placeholders. NICE, WHO and ICMR guidance would give each
-   rule a real citation, in a `CANDIDATES.md` beside the rules, flag untouched.
-   This was in progress when the session ended.
+1. ~~**The research pass for the 31 red flag rules.**~~ **Done** —
+   `services/consult/rules/red_flags/CANDIDATES.md`. Nine rules map onto current
+   published guidance (NG232, IMCI, NG126, FOGSI, RCUK, EAU, NG128, NG51,
+   Ottawa); eleven were not researched, each named with why. No rule modified,
+   30/31 flags still set.
+
+   Three things in it a clinician should see first: NG225 argues against the
+   `escalate_if` modifier on `RF_SUICIDE_RISK_001`; NG232 excludes aspirin
+   monotherapy where `anticoagulant_use_present` may not; and
+   `RF_ANAPHYLAXIS_001` has no circulation branch, so a faint, clammy patient
+   after an exposure with no airway feature does not fire it.
 
 2. **Frontend.** `web/` holds 14 uncommitted vanilla files — a complete design
    system built to a spec the user supplied (institutional print, Archivo +
