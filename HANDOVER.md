@@ -19,7 +19,7 @@ Written 2026-09-10. Repository: `https://github.com/Shashank231205/Nidana`
 
 ## Where things stand
 
-84 commits, **1,257 tests passing**, nothing skipped. `mypy --strict` clean
+91 commits, **1,303 Python tests and 37 frontend tests passing**, nothing skipped. `mypy --strict` clean
 across 179 files, ruff clean, all architectural boundaries hold, CI green.
 
 ```bash
@@ -40,8 +40,7 @@ All five services boot healthy through their real lifespans.
 ## The one thing running right now
 
 `scripts/review_rules.py` is running in the background over the red flag rules.
-**14 of 30 done**; each takes eight to eleven minutes (four sequential model
-calls at about 6 tokens/sec), so roughly 2.5 hours remain.
+**24 of 30 done**, about eight minutes each, so under an hour remains.
 
 It is resumable and skips rules that already carry a review, so if it stops:
 
@@ -70,7 +69,7 @@ reasoning is here.
 | `model_attested` | **No** | A deployment chose to run it without a clinician |
 | `clinician_verified` | No | A named person accepted responsibility |
 
-Current: 16 unreviewed, 14 ai_reviewed, 0 attested, 1 clinician_verified
+Current: 6 unreviewed, 24 ai_reviewed, 0 attested, 1 clinician_verified
 (`RF_UNDER_TWO_001`, which encodes a product scope boundary rather than a
 clinical criterion).
 
@@ -295,17 +294,87 @@ a file and read it, or `.encode("ascii", "replace")`.
 
 ## Next, in order
 
-1. **Let the panel finish** — 16 rules, ~2.5 hours, resumable.
+1. **Let the panel finish** — 6 rules, under an hour, resumable.
+   Watch it in plain words: `python scripts/watch.py --follow`
 2. **Decide on attestation.** `python scripts/attest_rule.py --all
    --accepted-by "<name>"` ships everything the panel reviewed, with disclosure
    on every response. Read the drift counts first.
-3. **Frontend — the React + Vite port.** `web/` holds 14 uncommitted vanilla
-   files: a complete design system built to a spec the user supplied
-   (institutional print, Archivo + Newsreader self-hosted, 5-colour urgency
-   palette, 7 screens), rendered and screenshotted at 1440px and 320px.
-   `tokens.css`, `base.css` and `api.js` port unchanged.
+3. **Frontend — built and committed.** React + Vite + TypeScript strict, 17
+   screens over the five services, 37 tests, its own CI job. See below.
 
-   **Do not commit `web/` without asking** — deliberately deferred.
+---
+
+## The frontend
+
+`web/`, React + Vite + TypeScript strict. `npm ci && npm run dev`, then
+**http://localhost:5173** — `localhost`, not `127.0.0.1`, because Vite binds
+IPv6 only and curl on the numeric address gets nothing.
+
+```bash
+npm run dev        # Vite, proxying /api/<service> to 8000-8004
+npm test           # 37 tests
+npm run typecheck
+npm run build      # 194 kB JS, 60 kB gzipped
+```
+
+**All five services need to be running.** Only Consult had a container before;
+`infra/compose.yaml` now builds all five on 8000 to 8004, and Vite proxies
+`/api/consult`, `/api/scribe` and so on to each. The same paths sit behind one
+reverse proxy in a deployment, which is why the prefix is in the path.
+
+### The two defects worth remembering
+
+**The vanilla build could not complete one consultation.** `POST /turns`
+returns 403 without recorded consent, and the old screen collected the
+checkbox and never posted it. Every first turn failed. The test that pins this
+asserts the consent call *precedes* the turn, not merely that a question
+appears — a mock that ignores ordering passes the weaker test.
+
+**It never rendered `disclosures`.** That field is how a deployment running
+rules on a model's reading admits it to the patient, so a client dropping it
+defeats the state. It now sits below the return criteria as plain text, not a
+dismissible banner: a disclosure one tap from never having been seen is not a
+disclosure.
+
+### What the screens are for
+
+Every service reports what it could not check as plainly as what it found,
+because an empty findings list reads as "nothing wrong" when what is true may
+be "this was not examined". Rx says interactions were not checked rather than
+showing an empty result; Labs puts unit mismatches above the findings and
+marks a value whose threshold nobody signed; Scribe names the claims the
+groundedness gate dropped; the audit and custody screens verify each hash link
+in the client and raise an alert where one does not match.
+
+Each service screen sits beside a panel reading that service's own `/health`,
+so a pharmacist learns interaction checking is off *before* typing. Off-states
+are a hollow square and never a tick — a green tick beside "interactions not
+checked" reads as approval.
+
+### Theme
+
+Three grounds, not one: the page is the deepest and panels lift off it, which
+is the opposite of the usual white page with grey cards and is what stops a
+screen holding one form from reading as blank. One accent, deep green, meaning
+"actionable" and never clinical.
+
+`tests/test_palette.py` parses the stylesheet, so a colour change that fails
+contrast fails the Python suite. Three colours in the original palette did
+fail: `--ink-3` at 3.20:1, `--u2` at 3.67:1, `--u3` at 3.83:1.
+
+**The urgency ramp does not survive colour blindness and no five-hue ramp
+does.** Simulated, U1 and U4 collapse to 1.01:1 under deuteranopia — "go now"
+and "within a week", indistinguishable, for roughly 8% of men. The band is
+carried by text and position; colour only reinforces it.
+
+### Still open
+
+- A full triage turn times out at 120 s while the panel has Ollama saturated.
+  Inference contention on a 3B model, not a frontend fault: a direct Ollama
+  call answers in 52 ms. Retest once the panel finishes.
+- No browser screenshots yet. The tests are jsdom.
+- No login. `actor` and `signed_by` are strings the client sends, and the name
+  entry screen says so rather than implying a login that does not exist.
 
 ---
 
