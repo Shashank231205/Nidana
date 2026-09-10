@@ -83,9 +83,15 @@ ignore_missing_imports = true
 # alone is a 2GB download, and CI does not install it. The diarisation module
 # imports both lazily behind a Protocol this repo defines, so their absence
 # costs nothing but an unresolved name here.
+#
+# pypdf is used by one build script that turns source PDFs into the knowledge
+# index. That script runs on a machine that has the PDFs; CI has neither, and
+# type checking the script does not need the library present.
 [[tool.mypy.overrides]]
 module = [
     "faster_whisper.*",
+    "pypdf",
+    "pypdf.*",
     "huggingface_hub.*",
     "pytesseract.*",
     "PIL.*",
