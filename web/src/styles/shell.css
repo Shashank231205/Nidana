@@ -1,0 +1,356 @@
+/* The application frame: header, sub-nav, entry, home.
+ *
+ * Everything here is layout and rules. No colour beyond ink on page, because
+ * the urgency palette is the only colour in this product that means anything
+ * and it belongs on urgency, not on furniture.
+ */
+
+/* ── Header ─────────────────────────────────────────────── */
+
+.app-header {
+  border-bottom: 1px solid var(--rule);
+  background: var(--page);
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s5);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--s3) var(--s4);
+}
+
+.wordmark {
+  font-family: var(--sans);
+  font-size: var(--size-body);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.service-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  flex: 1;
+}
+
+/* The active service is marked by weight and a rule under it. A filled pill
+ * would introduce a shape that carries no meaning, and any fill dark enough to
+ * read would compete with the urgency marker. */
+.service-link {
+  font-size: var(--size-data);
+  color: var(--ink-2);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.service-link:hover { color: var(--ink); }
+
+.service-link[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--ink);
+}
+
+.actor {
+  font-size: var(--size-data);
+  color: var(--ink-2);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--rule);
+}
+
+.actor:hover { color: var(--ink); text-decoration-color: var(--ink); }
+
+/* ── Sub-navigation ─────────────────────────────────────── */
+
+.sub-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--s2) var(--s4) 0;
+}
+
+.sub-link {
+  font-size: var(--size-data);
+  color: var(--ink-2);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.sub-link:hover { color: var(--ink); }
+
+.sub-link[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--ink);
+}
+
+/* ── Page frame ─────────────────────────────────────────── */
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--s5) var(--s4) var(--s8);
+}
+
+.page-narrow { max-width: var(--measure); }
+
+.page-title {
+  font-size: var(--size-statement);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--s2);
+}
+
+.page-intro { color: var(--ink-2); margin: 0 0 var(--s5); max-width: var(--measure); }
+
+/* ── Entry ──────────────────────────────────────────────── */
+
+.entry {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: var(--s9) var(--s4) var(--s8);
+}
+
+.entry-mark { margin: 0 0 var(--s6); font-size: var(--size-statement); }
+
+.entry-form { display: flex; flex-direction: column; gap: var(--s2); }
+.entry-form .btn { align-self: flex-start; margin-top: var(--s3); }
+.entry-note { margin-top: var(--s2); }
+
+/* ── Home ───────────────────────────────────────────────── */
+
+.home {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--s7) var(--s4) var(--s8);
+}
+
+.home-statement { margin: var(--s2) 0 var(--s6); }
+
+.home-list { display: flex; flex-direction: column; gap: var(--s4); }
+
+.home-item { padding-bottom: var(--s4); border-bottom: 1px solid var(--rule); }
+.home-item:last-child { border-bottom: 0; }
+
+.home-link {
+  font-size: var(--size-criterion);
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.home-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.home-summary { margin-top: var(--s1); }
+
+/* ── Narrow screens ─────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .app-header-inner {
+    flex-wrap: wrap;
+    gap: var(--s2) var(--s3);
+    padding: var(--s2) var(--s3);
+  }
+  .service-nav { order: 3; width: 100%; gap: var(--s3); }
+  .actor { margin-left: auto; }
+  .sub-nav { padding: var(--s2) var(--s3) 0; gap: var(--s3); }
+  .page { padding: var(--s4) var(--s3) var(--s7); }
+  .entry { padding: var(--s6) var(--s3) var(--s7); }
+  .home { padding: var(--s5) var(--s3) var(--s7); }
+}
+
+/* ── Forms ──────────────────────────────────────────────── */
+
+.form-gap { margin-top: var(--s4); }
+
+.lookup-form { margin-bottom: var(--s4); }
+
+.lookup-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  align-items: flex-start;
+}
+
+.field-select { flex: 0 0 auto; min-width: 96px; }
+.field-short  { flex: 0 0 auto; width: 120px; }
+.field-wide   { flex: 1 1 320px; }
+.field-tall   { font-family: var(--mono); font-size: var(--size-mono); }
+
+.result-row,
+.turn-row {
+  display: flex;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+  align-items: flex-start;
+}
+
+.result-row .field { flex: 1 1 auto; }
+.turn-row .field   { flex: 1 1 auto; }
+
+/* ── Coverage: what was not checked ─────────────────────── */
+
+/* Bordered on the leading edge and set at body weight, not muted. The whole
+ * point is that a gap in coverage reads as loudly as a finding. */
+.coverage {
+  border-left: 2px solid var(--ink);
+  padding: var(--s2) 0 var(--s2) var(--s3);
+  margin: var(--s4) 0;
+}
+
+.coverage-list { margin-top: var(--s2); }
+.coverage-list li { color: var(--ink-2); }
+
+/* ── Results ────────────────────────────────────────────── */
+
+.result { margin-top: var(--s5); }
+
+.finding-list { display: flex; flex-direction: column; gap: var(--s4); margin-top: var(--s3); }
+
+.finding {
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+.finding:last-child { border-bottom: 0; }
+
+.finding-headline {
+  font-size: var(--size-body);
+  font-weight: 600;
+  margin: 0 0 var(--s1);
+}
+
+.finding-flag { font-weight: 400; color: var(--ink-2); }
+.finding-unverified,
+.finding-blocking { margin-top: var(--s1); font-weight: 600; }
+
+.result-note { margin-top: var(--s4); }
+
+.threshold-count { margin: var(--s3) 0 var(--s2); }
+.threshold-list { margin-top: var(--s3); columns: 2; column-gap: var(--s5); }
+
+/* ── Summary lists ──────────────────────────────────────── */
+
+.summary { display: flex; flex-direction: column; gap: var(--s2); margin: 0; }
+
+.summary-field {
+  display: flex;
+  gap: var(--s3);
+  justify-content: space-between;
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.summary-field dd { margin: 0; text-align: right; }
+
+/* ── Audit and custody chain ────────────────────────────── */
+
+.audit-list { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s4); }
+
+.audit-entry {
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+.audit-entry:last-child { border-bottom: 0; }
+
+.audit-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin: 0 0 var(--s1);
+  flex-wrap: wrap;
+}
+
+.audit-seq {
+  font-family: var(--mono);
+  font-size: var(--size-mono);
+  color: var(--ink-3);
+  min-width: 2ch;
+}
+
+.audit-event { font-size: var(--size-body); font-weight: 600; }
+.audit-when  { margin-left: auto; }
+
+.audit-payload {
+  margin: var(--s2) 0 0;
+  padding-left: var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.audit-field { display: flex; gap: var(--s2); }
+.audit-field dt { min-width: 140px; }
+.audit-field dd { margin: 0; }
+
+/* A broken hash link is the one thing on these screens that is an alarm. It
+ * is set in the emergency colour because that is exactly what it is. */
+.audit-broken { color: var(--u1); font-weight: 600; }
+
+/* ── Statutes ───────────────────────────────────────────── */
+
+.statute {
+  padding-bottom: var(--s3);
+  margin-bottom: var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+.statute:last-of-type { border-bottom: 0; }
+
+.statute-pair {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin: 0 0 var(--s1);
+}
+
+.statute-code { font-size: var(--size-criterion); font-weight: 500; }
+.statute-arrow { color: var(--ink-3); }
+.statute-title { margin-bottom: var(--s1); }
+
+.disclaimer {
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule);
+  font-size: var(--size-data);
+  color: var(--ink-2);
+}
+
+/* ── Failure ────────────────────────────────────────────── */
+
+.failure {
+  border-left: 2px solid var(--ink);
+  padding: var(--s2) 0 var(--s2) var(--s3);
+  margin: var(--s4) 0;
+}
+.failure .btn { margin-top: var(--s3); }
+
+/* ── Disclosures ────────────────────────────────────────── */
+
+.disclosures {
+  margin-top: var(--s5);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--rule);
+}
+.disclosure-list { margin-top: var(--s2); }
+
+@media (max-width: 640px) {
+  .threshold-list { columns: 1; }
+  .result-row, .turn-row { flex-direction: column; }
+  .field-short, .field-select { width: 100%; }
+  .summary-field { flex-direction: column; gap: 2px; }
+  .summary-field dd { text-align: left; }
+  .audit-when { margin-left: 0; width: 100%; }
+  .audit-field { flex-direction: column; gap: 0; }
+}

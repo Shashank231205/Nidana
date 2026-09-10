@@ -15,7 +15,9 @@ from pathlib import Path
 
 import pytest
 
-TOKENS = Path(__file__).resolve().parents[1] / "web" / "src" / "styles" / "tokens.css"
+STYLES = Path(__file__).resolve().parents[1] / "web" / "src" / "styles"
+TOKENS = STYLES / "tokens.css"
+BASE = STYLES / "base.css"
 
 AA_NORMAL = 4.5
 """WCAG 2.1 minimum for normal-weight body text."""
@@ -100,3 +102,21 @@ class TestNoAccent:
             if value in band_values and name not in BANDS
         }
         assert reused == {}
+
+
+class TestAccessibilityFloor:
+    """Unannounced, and therefore easy to delete without noticing.
+
+    Each of these is a rule a keyboard or screen-reader user depends on and
+    nobody else sees. A CSS regression removing one is silent.
+    """
+
+    def test_keyboard_focus_is_visible(self) -> None:
+        assert ":focus-visible" in BASE.read_text(encoding="utf-8")
+
+    def test_reduced_motion_is_respected(self) -> None:
+        assert "prefers-reduced-motion" in BASE.read_text(encoding="utf-8")
+
+    def test_a_visually_hidden_class_exists_for_labels(self) -> None:
+        """Fields whose visible label would be redundant still need one."""
+        assert ".visually-hidden" in BASE.read_text(encoding="utf-8")

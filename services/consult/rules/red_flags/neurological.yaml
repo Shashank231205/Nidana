@@ -69,6 +69,23 @@ rules:
       its own required field so that a verified time-to-peak criterion can be
       added here without a schema change.
     verify_before_ship: true
+    # panel review for RF_SAH_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "neurology/trauma specialist"
+      dossier_path: "docs/verification/panel/RF_SAH_001.md"
+      concerns:
+        - "Missed cases exist."
+        - "The rule will not fire for patients who experience a thunderclap headache without vomiting, neck stiffness, or a documented “worst‑ever” intensity. Such presentations are common in acute subarachnoid hemorrhage (SAH) and can be missed if the clinician relies solely on the current criteria."
+        - "Potential over‑referral."
+        - "Patients who truly have a severe thunderclap headache with vomiting or neck stiffness will be escalated unnecessarily, leading to unnecessary imaging or admission."
+        - "Schema limitation."
+        - "The rule depends on the existence of a `headache_worst_ever` predicate, which is not present in the current predicate registry. This suggests a need for a new or expanded data capture field to reliably encode severity descriptors."
+        - "Temporal capture is missing."
+        - "The `time_to_peak_minutes` field, which could help differentiate a true thunderclap headache from a sub‑acute bleed, is not yet implemented."
 
   - id: RF_MENINGISM_001
     label: Possible meningitis
@@ -79,6 +96,21 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_MENINGISM_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "clinician specializing in infectious diseases and emergency medicine"
+      dossier_path: "docs/verification/panel/RF_MENINGISM_001.md"
+      concerns:
+        - "Missed cases – The rule will miss patients who present with severe headache, neck stiffness, and altered consciousness but have no fever. Such patients (e.g., a 45‑year‑old male with bacterial meningitis) will not trigger the rule because fever is a mandatory component."
+        - "Potential over‑referrals – Patients who have fever, neck stiffness, and a mild rash (even if the rash is not severe) will be escalated to emergency care, potentially leading to unnecessary neurosurgical intervention and resource waste."
+        - "Clinical context matters – In resource‑limited district hospitals in India, fever may be absent in a substantial proportion of bacterial meningitis cases, making the rule’s reliance on fever a significant limitation."
+        - "Emergency Physician: Argues that the rule should be broadened to include severe neck stiffness alone (or combined with altered consciousness) to capture missed cases, even if fever is absent."
+        - "Safety Engineer: Proposes that the rule’s label should be expanded to “suspected meningitis” and that the rule should not be triggered solely on fever, as this reduces false‑negative risk."
+        - "Indian Practice Reviewer: Suggests that the rule should be relaxed to allow detection without fever, acknowledging that the current design may miss a large subset of meningitis cases in this population."
 
   - id: RF_RAISED_ICP_001
     label: Features suggesting raised intracranial pressure
@@ -91,6 +123,20 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_RAISED_ICP_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_RAISED_ICP_001.md"
+      concerns:
+        - "The rule may miss patients with sub‑arachnoid hemorrhage who present with severe headache and vomiting but lack focal neurological deficits."
+        - "The rule could potentially over‑fire on patients with gastro‑oesophageal reflux disease, leading to unnecessary termination of the emergency session."
+        - "Emergency Physician vs. Indian Practice Reviewer: Whether the rule’s current symptom combination (headache + vomiting) is sufficient to capture SAH presentations, especially in delayed presentations typical of low‑resource settings."
+        - "Safety Engineer vs. Emergency Physician: Whether the rule should be expanded to include altered consciousness without requiring focal neurological signs, and if so, whether the escalation action should be modified."
+        - "Refer to: A neurology specialist to address the missed SAH cases and to refine the rule’s criteria to align with local epidemiology and resource constraints."
 
   - id: RF_SEIZURE_001
     label: Seizure activity
@@ -99,6 +145,19 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_SEIZURE_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "clinical neurology/ emergency medicine specialist"
+      dossier_path: "docs/verification/panel/RF_SEIZURE_001.md"
+      concerns:
+        - "Missed cases – The rule will terminate the emergency session for patients who present with generalized tonic‑clonic seizures but do not describe “seizure activity” (jerking, loss of consciousness) in the voice‑recorded narrative. Such subtle presentations (altered consciousness, rigors) are captured by predicates like `altered_consciousness_present` or `rigors_present`, which are not part of the current `seizure_present` flag. Consequently, patients with status epilepticus or febrile seizures may be discharged without the needed emergent work‑up."
+        - "Over‑referral risk – Patients who present with chest pain, dyspnea, or other systemic signs unrelated to seizure activity will also trigger termination because the rule’s single firing condition is met. This could unnecessarily consume resources and cause patient anxiety."
+        - "Emergency physician: Argues that expanding the rule to include `altered_consciousness_present`, `rigors_present`, or similar descriptors would capture missed seizures (e.g., subtle altered consciousness in children or febrile seizures) without increasing unnecessary terminations."
+        - "Safety engineer: Warns that broadening the rule could lead to over‑referral on patients who do not truly need emergency termination (e.g., chest‑pain‑only patients), potentially increasing resource utilization and ICU bed occupancy."
 
   - id: RF_TEMPORAL_ARTERITIS_001
     label: Features suggesting temporal arteritis
@@ -109,6 +168,14 @@ rules:
     action: ESCALATE_BAND
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_TEMPORAL_ARTERITIS_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_TEMPORAL_ARTERITIS_001.md"
 
   - id: RF_VISION_LOSS_001
     label: Acute vision loss

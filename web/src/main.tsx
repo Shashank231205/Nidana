@@ -5,6 +5,7 @@ import { App } from "./App";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/patient.css";
+import "./styles/shell.css";
 
 const root = document.getElementById("root");
 if (root === null) throw new Error("no #root element in the page");

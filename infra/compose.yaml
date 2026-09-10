@@ -62,5 +62,109 @@ services:
       - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
+  scribe:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+    command: ["uvicorn", "services.scribe.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      NIDANA_MODE: ${NIDANA_MODE:-development}
+      NIDANA_INFERENCE_TRANSPORT: local
+      NIDANA_OLLAMA_HOST: http://ollama:11434
+      NIDANA_MODEL_PRIMARY: ${NIDANA_MODEL_PRIMARY:?name the model to use}
+      NIDANA_MODEL_FALLBACKS: ${NIDANA_MODEL_FALLBACKS:-}
+      NIDANA_DB_HOST: db
+      NIDANA_DB_NAME: ${NIDANA_DB_NAME:-nidana}
+      NIDANA_DB_USER: ${NIDANA_DB_USER:-nidana_app}
+      NIDANA_DB_PASSWORD: ${NIDANA_DB_PASSWORD:?set it in .env}
+      NIDANA_ALLOW_UNVERIFIED_RULES: ${NIDANA_ALLOW_UNVERIFIED_RULES:-true}
+      NIDANA_BRAND_INDEX: ${NIDANA_BRAND_INDEX:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8001:8000"
+    restart: unless-stopped
+
+  rx:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+    command: ["uvicorn", "services.rx.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      NIDANA_MODE: ${NIDANA_MODE:-development}
+      NIDANA_INFERENCE_TRANSPORT: local
+      NIDANA_OLLAMA_HOST: http://ollama:11434
+      NIDANA_MODEL_PRIMARY: ${NIDANA_MODEL_PRIMARY:?name the model to use}
+      NIDANA_MODEL_FALLBACKS: ${NIDANA_MODEL_FALLBACKS:-}
+      NIDANA_DB_HOST: db
+      NIDANA_DB_NAME: ${NIDANA_DB_NAME:-nidana}
+      NIDANA_DB_USER: ${NIDANA_DB_USER:-nidana_app}
+      NIDANA_DB_PASSWORD: ${NIDANA_DB_PASSWORD:?set it in .env}
+      NIDANA_ALLOW_UNVERIFIED_RULES: ${NIDANA_ALLOW_UNVERIFIED_RULES:-true}
+      NIDANA_BRAND_INDEX: ${NIDANA_BRAND_INDEX:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8002:8000"
+    restart: unless-stopped
+
+  labs:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+    command: ["uvicorn", "services.labs.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      NIDANA_MODE: ${NIDANA_MODE:-development}
+      NIDANA_INFERENCE_TRANSPORT: local
+      NIDANA_OLLAMA_HOST: http://ollama:11434
+      NIDANA_MODEL_PRIMARY: ${NIDANA_MODEL_PRIMARY:?name the model to use}
+      NIDANA_MODEL_FALLBACKS: ${NIDANA_MODEL_FALLBACKS:-}
+      NIDANA_DB_HOST: db
+      NIDANA_DB_NAME: ${NIDANA_DB_NAME:-nidana}
+      NIDANA_DB_USER: ${NIDANA_DB_USER:-nidana_app}
+      NIDANA_DB_PASSWORD: ${NIDANA_DB_PASSWORD:?set it in .env}
+      NIDANA_ALLOW_UNVERIFIED_RULES: ${NIDANA_ALLOW_UNVERIFIED_RULES:-true}
+      NIDANA_BRAND_INDEX: ${NIDANA_BRAND_INDEX:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8003:8000"
+    restart: unless-stopped
+
+  forensics:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+    command: ["uvicorn", "services.forensics.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      NIDANA_MODE: ${NIDANA_MODE:-development}
+      NIDANA_INFERENCE_TRANSPORT: local
+      NIDANA_OLLAMA_HOST: http://ollama:11434
+      NIDANA_MODEL_PRIMARY: ${NIDANA_MODEL_PRIMARY:?name the model to use}
+      NIDANA_MODEL_FALLBACKS: ${NIDANA_MODEL_FALLBACKS:-}
+      NIDANA_DB_HOST: db
+      NIDANA_DB_NAME: ${NIDANA_DB_NAME:-nidana}
+      NIDANA_DB_USER: ${NIDANA_DB_USER:-nidana_app}
+      NIDANA_DB_PASSWORD: ${NIDANA_DB_PASSWORD:?set it in .env}
+      NIDANA_ALLOW_UNVERIFIED_RULES: ${NIDANA_ALLOW_UNVERIFIED_RULES:-true}
+      NIDANA_BRAND_INDEX: ${NIDANA_BRAND_INDEX:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8004:8000"
+    restart: unless-stopped
+
 volumes:
   db_data:

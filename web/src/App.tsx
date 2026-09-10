@@ -1,42 +1,100 @@
-import { useConsult } from "./services/consult/patient/useConsult";
-import { Start } from "./services/consult/patient/Start";
-import { Question } from "./services/consult/patient/Question";
-import { Emergency } from "./services/consult/patient/Emergency";
-import { Outcome } from "./services/consult/patient/Outcome";
-import { ErrorScreen } from "./services/consult/patient/ErrorScreen";
+import { Header } from "./shell/Header";
+import { SubNav } from "./shell/SubNav";
+import { NameEntry } from "./shell/NameEntry";
+import { Home } from "./shell/Home";
+import { serviceById } from "./shell/services";
+import { useRoute, navigate } from "./shell/useRoute";
+import { useIdentity } from "./shell/useIdentity";
+import { PatientConsult } from "./services/consult/patient/PatientConsult";
+import { ConsultSessions } from "./services/consult/clinician/ConsultSessions";
+import { ConsultAudit } from "./services/consult/clinician/ConsultAudit";
+import { ScribeEncounters } from "./services/scribe/ScribeEncounters";
+import { ScribeDraft } from "./services/scribe/ScribeDraft";
+import { RxCheck } from "./services/rx/RxCheck";
+import { RxRead } from "./services/rx/RxRead";
+import { LabsReport } from "./services/labs/LabsReport";
+import { LabsExtract } from "./services/labs/LabsExtract";
+import { LabsThresholds } from "./services/labs/LabsThresholds";
+import { ForensicsExaminations } from "./services/forensics/ForensicsExaminations";
+import { ForensicsStatutes } from "./services/forensics/ForensicsStatutes";
 
-/* One screen is visible at a time.
+/* The frame, and what goes in it.
  *
- * The switch is exhaustive over Phase, so a phase added without a screen is a
- * compile error rather than a blank page.
+ * The patient triage flow is routed before the shell and renders without it.
+ * A patient mid-triage has nowhere to navigate — every other service is a
+ * clinician tool — and the emergency screen is terminal, so a nav link beside
+ * "go to a hospital now" is a way out of an instruction that must not have
+ * one.
  */
 
-export function App(): JSX.Element {
-  const { state, begin, answer, restart } = useConsult();
-
-  switch (state.phase) {
-    case "start":
-      return <Start busy={state.busy} onStart={begin} />;
-    case "question":
+function screenFor(service: string, screen: string | null, actor: string): JSX.Element {
+  switch (`${service}/${screen ?? ""}`) {
+    case "consult/":
+    case "consult/sessions":
+      return <ConsultSessions />;
+    case "consult/audit":
+      return <ConsultAudit />;
+    case "scribe/":
+    case "scribe/encounters":
+      return <ScribeEncounters />;
+    case "scribe/draft":
+      return <ScribeDraft actor={actor} />;
+    case "rx/":
+    case "rx/check":
+      return <RxCheck actor={actor} />;
+    case "rx/read":
+      return <RxRead />;
+    case "labs/":
+    case "labs/report":
+      return <LabsReport actor={actor} />;
+    case "labs/extract":
+      return <LabsExtract />;
+    case "labs/thresholds":
+      return <LabsThresholds />;
+    case "forensics/":
+    case "forensics/examinations":
+      return <ForensicsExaminations actor={actor} />;
+    case "forensics/statutes":
+      return <ForensicsStatutes />;
+    default:
       return (
-        <Question
-          question={state.turn?.question ?? ""}
-          turnIndex={state.turn?.turn_index ?? 0}
-          busy={state.busy}
-          onAnswer={answer}
-        />
+        <main className="page page-narrow">
+          <h1 className="page-title">That screen does not exist.</h1>
+          <p className="body secondary">Pick a service from the header.</p>
+        </main>
       );
-    case "emergency":
-      return <Emergency emergency={state.turn?.emergency ?? null} />;
-    case "outcome":
-      return (
-        <Outcome
-          triage={state.turn?.triage ?? null}
-          disclosures={state.disclosures}
-          onRestart={restart}
-        />
-      );
-    case "error":
-      return <ErrorScreen detail={state.error} onRestart={restart} />;
   }
+}
+
+export function App(): JSX.Element {
+  const route = useRoute();
+  const { actor, setActor, clear } = useIdentity();
+
+  // Before the shell: the patient surface has no header by design.
+  if (route.service === "triage") return <PatientConsult />;
+
+  if (actor === null) {
+    return (
+      <NameEntry
+        onSubmit={(name) => {
+          setActor(name);
+          navigate("/");
+        }}
+      />
+    );
+  }
+
+  const service = route.service === null ? undefined : serviceById(route.service);
+
+  return (
+    <>
+      <Header active={service?.id ?? null} actor={actor} onChangeActor={clear} />
+      {service !== undefined && <SubNav service={service} active={route.screen} />}
+      {service === undefined ? (
+        <Home actor={actor} />
+      ) : (
+        screenFor(service.id, route.screen, actor)
+      )}
+    </>
+  );
 }

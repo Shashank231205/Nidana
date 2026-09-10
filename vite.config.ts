@@ -7,12 +7,28 @@ export default defineConfig({
   root: "web",
   base: "./",
   plugins: [react()],
-  build: { outDir: "../dist", emptyOutDir: true },
+  build: { outDir: "dist", emptyOutDir: true },
+  /* Each service is its own app on its own port. The same paths sit behind one
+   * reverse proxy in a deployment, so only the target differs here. */
   server: {
-    proxy: {
-      "/v1": "http://127.0.0.1:8000",
-      "/health": "http://127.0.0.1:8000",
-    },
+    proxy: Object.fromEntries(
+      (
+        [
+          ["consult", 8000],
+          ["scribe", 8001],
+          ["rx", 8002],
+          ["labs", 8003],
+          ["forensics", 8004],
+        ] as const
+      ).map(([name, port]) => [
+        `/api/${name}`,
+        {
+          target: `http://127.0.0.1:${port}`,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(`/api/${name}`, ""),
+        },
+      ]),
+    ),
   },
   test: {
     globals: true,

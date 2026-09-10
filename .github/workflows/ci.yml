@@ -20,10 +20,10 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Lint
-        run: ruff check spine services tests
+        run: ruff check spine services tests scripts
 
       - name: Type check
-        run: mypy spine services tests
+        run: mypy spine services tests scripts
 
       - name: Test
         run: pytest tests/ -q
@@ -47,3 +47,27 @@ jobs:
             --cov=spine.audit \
             --cov-report=term-missing \
             --cov-fail-under=95
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      # The build is the only thing that catches an import a test never
+      # reaches, and it is what a deployment actually serves.
+      - name: Build
+        run: npm run build

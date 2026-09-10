@@ -1,99 +1,31 @@
-/* The Consult API client.
+/* The five services' endpoints, named.
  *
- * Two things this module is responsible for and the screens are not:
- *
- * 1. Turn responses are dispatched on `shape`. There is no status string to
- *    parse and no inference about which fields are populated.
- * 2. Error `detail` from the backend is written to state the remedy, so it is
- *    carried through verbatim rather than replaced with a generic message.
+ * Every call goes through `request`, which carries the backend's error detail
+ * verbatim. Turn responses are dispatched on `shape`: there is no status
+ * string to parse and no inference about which fields are populated.
  */
 
+import { request } from "./http";
 import type {
+  CheckResponse,
   ConsentResponse,
+  EncounterResponse,
+  ExtractResponse,
+  InterpretResponse,
+  NoteResponse,
+  ReadResponse,
   SessionCreated,
+  StatuteResponse,
+  ThresholdsResponse,
   TurnResponse,
 } from "./types";
 
-declare global {
-  interface Window {
-    NIDANA_API_BASE?: string;
-  }
-}
+export { ApiError } from "./http";
 
-const base = (): string => window.NIDANA_API_BASE ?? "";
-
-export class ApiError extends Error {
-  readonly status: number;
-  readonly detail: string;
-
-  constructor(status: number, detail: string) {
-    super(detail);
-    this.name = "ApiError";
-    this.status = status;
-    this.detail = detail;
-  }
-}
-
-interface ValidationItem {
-  readonly msg?: unknown;
-}
-
-function detailFrom(payload: unknown, fallback: string): string {
-  if (typeof payload !== "object" || payload === null) return fallback;
-  const detail = (payload as { detail?: unknown }).detail;
-  if (typeof detail === "string") return detail;
-  if (Array.isArray(detail) && detail.length > 0) {
-    // 422 from FastAPI validation: a list of per-field errors.
-    const messages = (detail as ValidationItem[])
-      .map((item) => (typeof item.msg === "string" ? item.msg : null))
-      .filter((msg): msg is string => msg !== null);
-    if (messages.length > 0) return messages.join("; ");
-  }
-  return fallback;
-}
-
-async function request<T>(
-  method: "GET" | "POST",
-  path: string,
-  body?: unknown,
-): Promise<T> {
-  const init: RequestInit =
-    body === undefined
-      ? { method }
-      : {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        };
-
-  let response: Response;
-  try {
-    response = await fetch(base() + path, init);
-  } catch {
-    throw new ApiError(
-      0,
-      "Cannot reach the Nidana server on this machine. Check that it is running.",
-    );
-  }
-
-  if (!response.ok) {
-    let payload: unknown = null;
-    try {
-      payload = await response.json();
-    } catch {
-      // A non-JSON error body leaves the status line as the detail.
-    }
-    throw new ApiError(
-      response.status,
-      detailFrom(payload, `${response.status} ${response.statusText}`),
-    );
-  }
-
-  return (await response.json()) as T;
-}
+/* ── Consult ────────────────────────────────────────────── */
 
 export const createSession = (): Promise<SessionCreated> =>
-  request<SessionCreated>("POST", "/v1/sessions");
+  request("consult", "POST", "/v1/sessions");
 
 /** Record the patient's decision before any turn is taken.
  *
@@ -107,16 +39,93 @@ export const recordConsent = (
   granted: boolean,
   purpose = "triage",
 ): Promise<ConsentResponse> =>
-  request<ConsentResponse>("POST", `/v1/sessions/${sessionId}/consent`, {
-    granted,
-    purpose,
-  });
+  request("consult", "POST", `/v1/sessions/${sessionId}/consent`, { granted, purpose });
 
-export const submitTurn = (
-  sessionId: string,
-  utterance: string,
-): Promise<TurnResponse> =>
-  request<TurnResponse>("POST", `/v1/sessions/${sessionId}/turns`, { utterance });
+export const submitTurn = (sessionId: string, utterance: string): Promise<TurnResponse> =>
+  request("consult", "POST", `/v1/sessions/${sessionId}/turns`, { utterance });
 
 export const completeSession = (sessionId: string): Promise<TurnResponse> =>
-  request<TurnResponse>("POST", `/v1/sessions/${sessionId}/complete`);
+  request("consult", "POST", `/v1/sessions/${sessionId}/complete`);
+
+export const readSession = (sessionId: string): Promise<unknown> =>
+  request("consult", "GET", `/v1/sessions/${sessionId}`);
+
+export const readAudit = (sessionId: string): Promise<unknown> =>
+  request("consult", "GET", `/v1/sessions/${sessionId}/audit`);
+
+/* ── Scribe ─────────────────────────────────────────────── */
+
+export const createEncounter = (): Promise<EncounterResponse> =>
+  request("scribe", "POST", "/v1/encounters");
+
+export const draftNote = (
+  encounterId: string,
+  transcript: unknown,
+  record: unknown,
+): Promise<NoteResponse> =>
+  request("scribe", "POST", `/v1/encounters/${encounterId}/draft`, { transcript, record });
+
+export const signNote = (encounterId: string, signedBy: string): Promise<unknown> =>
+  request("scribe", "POST", `/v1/encounters/${encounterId}/sign`, { signed_by: signedBy });
+
+export const readEncounter = (encounterId: string): Promise<EncounterResponse> =>
+  request("scribe", "GET", `/v1/encounters/${encounterId}`);
+
+/* ── Rx ─────────────────────────────────────────────────── */
+
+export const checkPrescription = (
+  medications: unknown,
+  record: unknown,
+): Promise<CheckResponse> =>
+  request("rx", "POST", "/v1/checks", { medications, record });
+
+export const readPrescription = (
+  ocrText: string,
+  sourceId: string,
+): Promise<ReadResponse> =>
+  request("rx", "POST", "/v1/prescriptions/read", {
+    ocr_text: ocrText,
+    source_id: sourceId,
+  });
+
+/* ── Labs ───────────────────────────────────────────────── */
+
+/** The endpoint takes the report itself, not a wrapper around it. */
+export const interpretReport = (report: unknown): Promise<InterpretResponse> =>
+  request("labs", "POST", "/v1/reports", report);
+
+export const extractReport = (
+  reportText: string,
+  sourceId: string,
+): Promise<ExtractResponse> =>
+  request("labs", "POST", "/v1/reports/extract", {
+    report_text: reportText,
+    source_id: sourceId,
+  });
+
+export const readThresholds = (): Promise<ThresholdsResponse> =>
+  request("labs", "GET", "/v1/thresholds");
+
+/* ── Forensics ──────────────────────────────────────────── */
+
+export const lookUpStatute = (
+  numbering: "ipc" | "bns",
+  section: string,
+): Promise<StatuteResponse> =>
+  request("forensics", "GET", `/v1/statutes/${numbering}/${encodeURIComponent(section)}`);
+
+export const createExamination = (report: unknown, actor: string): Promise<unknown> =>
+  request("forensics", "POST", "/v1/examinations", { report, actor });
+
+export const recordAccess = (
+  examinationId: string,
+  actor: string,
+  reason: string,
+): Promise<unknown> =>
+  request("forensics", "POST", `/v1/examinations/${examinationId}/access`, {
+    actor,
+    reason,
+  });
+
+export const readChain = (examinationId: string, actor: string): Promise<unknown> =>
+  request("forensics", "POST", `/v1/examinations/${examinationId}/chain`, { actor });
