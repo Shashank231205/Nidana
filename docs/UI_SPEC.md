@@ -235,10 +235,34 @@ what makes a non-diagnostic system safe.
 **A terminal emergency ends the conversation.** No "are you sure", no
 "continue anyway". Show the instruction and the facility requirement.
 
-**`unverified_rule_ids` is not empty in the current build.** Every clinical
-rule is awaiting clinician sign-off. In development the UI may show a discreet
-notice; in production the server refuses to start while any rule is unverified,
-so this list will be empty there.
+**Every turn response carries `disclosures`, and a triage outcome must show
+them.** This is a top-level array of strings on the turn response, separate
+from the `unverified_rule_ids` that appears inside `emergency`.
+
+```json
+"disclosures": ["RF_ACS_001: reviewed by a model panel, not a clinician"]
+```
+
+It names every rule in force that runs on a model's reading rather than a
+clinician's signature. It is empty in a deployment whose rules a clinician
+signed, and non-empty otherwise.
+
+**A band produced partly by criteria no clinician signed, shown as though it
+were not, is the failure this field exists to prevent.** So:
+
+- Show it on the outcome screen, below the return criteria, as plain text.
+- Not a dismissible banner, not a tooltip, not behind an "info" icon. A
+  disclosure the patient can be one tap away from never having seen is not a
+  disclosure.
+- Wording for the patient names the limitation, not the rule IDs: "Some of the
+  safety checks behind this advice were reviewed by software, not signed off by
+  a doctor." The IDs themselves belong in small text beneath it.
+
+**The production gate.** The server refuses to start when a rule is unverified
+*and* unattested. A deployment may attest a rule — recording that a named
+person accepted running it on a model's reading — and then it starts, and
+`disclosures` is how that admission reaches the patient. The current build has
+30 of 31 rules blocking.
 
 ---
 
@@ -290,8 +314,12 @@ Not a feature to advertise. A floor to meet:
 
 ### Patient — Consult
 
-1. **Start** — one control to begin. Consent capture (DPDP Act requires it
-   logged; the backend endpoint is not built, so put it behind an interface).
+1. **Start** — one control to begin. Consent capture, and it is not optional:
+   `POST /v1/sessions/{id}/consent` exists and must be called before the first
+   turn. A session with no recorded consent returns **403** on `POST /turns`,
+   so a screen that collects the checkbox and does not post it cannot complete
+   a single consultation. The DPDP Act binds consent to a purpose, so send
+   `{"granted": true, "purpose": "triage"}`.
 2. **Question** — one question, voice button, text fallback. Nothing else.
 3. **Emergency** — terminal. What to do, where to go, what capability the
    facility needs. No dismissal, no back button.
