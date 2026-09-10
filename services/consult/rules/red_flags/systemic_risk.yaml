@@ -86,6 +86,26 @@ rules:
     action: ESCALATE_BAND
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_DEHYDRATION_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "pediatric emergency medicine specialist familiar with Indian clinical practice and resource-limited settings"
+      dossier_path: "docs/verification/panel/RF_DEHYDRATION_001.md"
+      concerns:
+        - "Missed cases exist."
+        - "The rule only escalates when *vomiting* is explicitly reported (`vomiting_present`) and oral intake is minimal."
+        - "In many Indian district‑hospital patients, especially children under 5, dehydration presents primarily with vomiting (and sometimes irritability) without a documented “minimal oral intake.”"
+        - "The rule therefore fails to capture a common presentation of severe dehydration in this population, potentially delaying life‑saving fluid resuscitation."
+        - "Potential over‑referral."
+        - "Patients who meet only the first branch (minimal oral intake + reduced urine output) but are not vomiting may still be escalated unnecessarily, increasing resource use and patient burden."
+        - "Safety vs. specificity."
+        - "Escalating mild dehydration cases (e.g., mild heat‑stress dehydration) can be justified in settings where IV access is readily available, but in resource‑constrained district hospitals it may lead to unnecessary transport and waste of limited resources."
+        - "Emergency Physician: Argues that the rule’s current design (vomiting + minimal intake) is appropriate because it aligns with Western pediatric dehydration guidelines and ensures rapid escalation for life‑threatening dehydration. Any expansion could increase over‑referral and expose patients to unnecessary interventions."
+        - "Safety Engineer: Points out that the rule’s narrow trigger may miss clinically significant dehydration in older adults and children who vomit but do not report minimal oral intake, leading to delayed treatment of severe dehydration. However, they caution that broadening the rule could also cause over‑referral, especially for mild cases."
+        - "Indian Practice Reviewer: Emphasizes the cultural and environmental context—heat‑related dehydration is common in Indian settings and often manifests as vomiting without explicit reporting of “minimal oral intake.” They contend that the current rule under‑triages many patients, risking missed severe dehydration."
 
   - id: RF_PAEDIATRIC_DANGER_001
     label: Paediatric danger signs

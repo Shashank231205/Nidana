@@ -42,3 +42,8 @@ services/rx/rules/brands/index.csv
 node_modules/
 *.tsbuildinfo
 web/dist/
+
+# Session handover notes. Working state for whoever picks the work up next,
+# not documentation of the product: what it records that outlives a session
+# belongs in docs/ instead.
+HANDOVER.md
