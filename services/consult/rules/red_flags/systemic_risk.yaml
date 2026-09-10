@@ -119,6 +119,14 @@ rules:
       PLACEHOLDER pending clinician review. Intended source: WHO IMCI danger
       signs. Not checked.
     verify_before_ship: true
+    # panel review for RF_PAEDIATRIC_DANGER_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_PAEDIATRIC_DANGER_001.md"
 
   - id: RF_UNDER_TWO_001
     label: Child under two
