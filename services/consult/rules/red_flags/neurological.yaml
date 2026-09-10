@@ -184,3 +184,11 @@ rules:
     action: TERMINATE_EMERGENCY
     source: PLACEHOLDER pending clinician review.
     verify_before_ship: true
+    # panel review for RF_VISION_LOSS_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "emergency physician"
+      dossier_path: "docs/verification/panel/RF_VISION_LOSS_001.md"

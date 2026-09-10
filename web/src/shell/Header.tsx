@@ -1,4 +1,5 @@
 import { SERVICES } from "./services";
+import { Logo } from "./Logo";
 import { hrefFor } from "./useRoute";
 
 /* The wordmark, the five services, and who is at the machine.
@@ -23,7 +24,7 @@ export function Header({ active, actor, onChangeActor }: Props): JSX.Element {
     <header className="app-header">
       <div className="app-header-inner">
         <a className="wordmark" href="#/" aria-label="Nidana, home">
-          Nidana
+          <Logo />
         </a>
 
         <nav className="service-nav" aria-label="Services">
@@ -39,11 +40,13 @@ export function Header({ active, actor, onChangeActor }: Props): JSX.Element {
           ))}
         </nav>
 
-        {actor !== null && (
-          <button className="actor" onClick={onChangeActor} title="Change who is signed in">
-            {actor}
-          </button>
-        )}
+        <div className="header-right">
+          {actor !== null && (
+            <button className="actor" onClick={onChangeActor} title="Change who is signed in">
+              {actor}
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

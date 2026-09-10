@@ -18,6 +18,31 @@
 
 html { background: var(--page); }
 
+/* The page ground carries a faint drift rather than being one flat fill: two
+ * very low-opacity washes moving slowly against each other. At this opacity
+ * it is not a pattern anybody looks at, it is the difference between a screen
+ * that feels lit and one that feels printed.
+ *
+ * Fixed rather than scrolling, so it never competes with content moving over
+ * it, and behind everything. Zeroed under prefers-reduced-motion with the
+ * rest of the motion. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 44% at 18% 22%, rgba(14, 107, 84, 0.055), transparent 70%),
+    radial-gradient(42% 40% at 82% 76%, rgba(138, 90, 30, 0.05), transparent 70%);
+  animation: drift 34s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+  to   { transform: translate3d(1.5%, 1%, 0) scale(1.06); }
+}
+
 body {
   margin: 0;
   background: var(--page);
@@ -34,7 +59,7 @@ button, input, textarea, select { border-radius: 0; font: inherit; color: inheri
 
 /* Visible keyboard focus on every interactive element. */
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -97,18 +122,26 @@ button, input, textarea, select { border-radius: 0; font: inherit; color: inheri
 }
 
 .btn-primary {
-  background: var(--ink);
-  color: var(--page);
-  border-color: var(--ink);
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  box-shadow: var(--lift-1);
+  transition: background var(--fast) var(--ease), box-shadow var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
 }
-.btn-primary:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
+.btn-primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  box-shadow: var(--lift-2);
+}
+.btn-primary:active { transform: translateY(1px); box-shadow: var(--lift-1); }
 
 .btn-secondary {
   background: transparent;
   color: var(--ink);
   border-color: var(--ink);
 }
-.btn-secondary:hover { background: rgba(23, 22, 20, 0.04); }
+.btn-secondary:hover { background: var(--accent-wash); border-color: var(--accent); color: var(--accent); }
 
 .btn:disabled { color: var(--ink-3); border-color: var(--rule); background: transparent; cursor: default; }
 .btn-primary:disabled { background: var(--rule); color: var(--page); }
@@ -116,7 +149,7 @@ button, input, textarea, select { border-radius: 0; font: inherit; color: inheri
 /* ── Text link ──────────────────────────────────────────────── */
 
 .link {
-  color: var(--ink);
+  color: var(--accent);
   background: none;
   border: 0;
   padding: 0;
@@ -128,6 +161,16 @@ button, input, textarea, select { border-radius: 0; font: inherit; color: inheri
   text-underline-offset: 3px;
 }
 .link:hover { text-decoration-thickness: 2px; }
+
+/* An anchor in prose. There is no accent colour in this product, so a link is
+ * ink with an underline, exactly like .link on a button. */
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
 
 /* ── Checkbox ───────────────────────────────────────────────── */
 
@@ -165,16 +208,17 @@ button, input, textarea, select { border-radius: 0; font: inherit; color: inheri
   display: block;
   width: 100%;
   background: var(--surface);
-  border: 0;
-  border-bottom: 3px solid var(--ink);
-  padding: 16px;
+  border: 1px solid var(--rule-strong);
+  padding: 12px 14px;
+  transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
   font-size: var(--size-body);
   font-family: var(--sans);
   line-height: 1.5;
   resize: none;
 }
 .field:focus { outline: none; }
-.field:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.field:focus-visible { outline: none; }
 .field::placeholder { color: var(--ink-3); }
 
 /* ── Microphone: the one circular element in the product ────── */

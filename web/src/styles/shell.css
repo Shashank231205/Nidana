@@ -16,9 +16,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--s5);
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--s3) var(--s4);
+  padding: var(--s3) var(--s5);
 }
 
 .wordmark {
@@ -76,9 +74,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--s4);
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--s2) var(--s4) 0;
+  padding: var(--s3) var(--s5) 0;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--s2);
 }
 
 .sub-link {
@@ -100,12 +98,11 @@
 /* ── Page frame ─────────────────────────────────────────── */
 
 .page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--s5) var(--s4) var(--s8);
+  max-width: 1100px;
+  padding: var(--s6) var(--s5) var(--s8);
 }
 
-.page-narrow { max-width: var(--measure); }
+.page-narrow { max-width: 720px; }
 
 .page-title {
   font-size: var(--size-statement);
@@ -166,8 +163,8 @@
   }
   .service-nav { order: 3; width: 100%; gap: var(--s3); }
   .actor { margin-left: auto; }
-  .sub-nav { padding: var(--s2) var(--s3) 0; gap: var(--s3); }
-  .page { padding: var(--s4) var(--s3) var(--s7); }
+  .sub-nav { padding: var(--s2) var(--s3); gap: var(--s3); }
+  .page { padding: var(--s5) var(--s3) var(--s7); }
   .entry { padding: var(--s6) var(--s3) var(--s7); }
   .home { padding: var(--s5) var(--s3) var(--s7); }
 }
@@ -354,3 +351,244 @@
   .audit-when { margin-left: 0; width: 100%; }
   .audit-field { flex-direction: column; gap: 0; }
 }
+
+/* ── Recent items ───────────────────────────────────────── */
+
+.recent { margin-top: var(--s5); }
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  margin-top: var(--s2);
+}
+
+.recent-item {
+  font-family: var(--mono);
+  font-size: var(--size-mono);
+  color: var(--ink-2);
+  text-align: left;
+}
+
+.recent-item:hover { color: var(--ink); }
+
+.mono-id {
+  font-family: var(--mono);
+  font-size: var(--size-mono);
+  color: var(--ink-2);
+  word-break: break-all;
+}
+
+/* ── Header right cluster ───────────────────────────────── */
+
+.header-right {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  margin-left: auto;
+}
+
+
+/* ── Surfaces ───────────────────────────────────────────── */
+
+/* A result is a panel on the page, not more page. The lift is what makes the
+ * three grounds do any work: without it the tokens differ and the screen
+ * still reads as one flat colour. */
+.result,
+.coverage,
+.failure,
+.recent {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: var(--s4);
+  box-shadow: var(--lift-1);
+}
+
+.coverage {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-wash);
+  box-shadow: none;
+}
+
+.failure {
+  border-left: 3px solid var(--u1);
+  box-shadow: none;
+}
+
+.summary-field:last-child { border-bottom: 0; padding-bottom: 0; }
+
+/* Home: each service is a panel that lifts on hover, so the list reads as
+ * five places to go rather than five paragraphs. */
+.home-item {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: var(--s4);
+  box-shadow: var(--lift-1);
+  transition: box-shadow var(--medium) var(--ease), transform var(--medium) var(--ease),
+    border-color var(--medium) var(--ease);
+}
+
+.home-item:hover {
+  box-shadow: var(--lift-2);
+  transform: translateY(-2px);
+  border-color: var(--rule-strong);
+}
+
+.home-item:last-child { border-bottom: 1px solid var(--rule); }
+.home-link { text-decoration: none; }
+.home-item:hover .home-link { color: var(--accent); }
+
+/* The header sits on the page and the sub-nav on the inset ground, so the
+ * chrome separates from the content without a heavy border. */
+.app-header { background: var(--surface); box-shadow: var(--lift-1); }
+.sub-nav { background: var(--sunken); }
+
+.service-link[aria-current="page"] { border-bottom-color: var(--accent); color: var(--accent); }
+.sub-link[aria-current="page"] { border-bottom-color: var(--accent); color: var(--accent); }
+
+/* ── Motion ─────────────────────────────────────────────── */
+
+/* Content settles rather than performs: a short rise and fade, eased out, on
+ * things that have just arrived. Nothing bounces, nothing slides across the
+ * screen, and nothing moves after it has landed.
+ *
+ * All of it is zeroed by the prefers-reduced-motion block in base.css. */
+
+@keyframes settle {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.result,
+.coverage,
+.failure {
+  animation: settle var(--medium) var(--ease) both;
+}
+
+/* Findings arrive in sequence so the eye reads down the list rather than
+ * being handed all of it at once. Capped at six: past that the last item
+ * waits long enough to feel broken. */
+.finding-list > li,
+.audit-list > li,
+.home-item {
+  animation: settle var(--medium) var(--ease) both;
+}
+
+.finding-list > li:nth-child(1), .audit-list > li:nth-child(1), .home-item:nth-child(1) { animation-delay: 0ms; }
+.finding-list > li:nth-child(2), .audit-list > li:nth-child(2), .home-item:nth-child(2) { animation-delay: 40ms; }
+.finding-list > li:nth-child(3), .audit-list > li:nth-child(3), .home-item:nth-child(3) { animation-delay: 80ms; }
+.finding-list > li:nth-child(4), .audit-list > li:nth-child(4), .home-item:nth-child(4) { animation-delay: 120ms; }
+.finding-list > li:nth-child(5), .audit-list > li:nth-child(5), .home-item:nth-child(5) { animation-delay: 160ms; }
+.finding-list > li:nth-child(n+6), .audit-list > li:nth-child(n+6), .home-item:nth-child(n+6) { animation-delay: 200ms; }
+
+/* The loading line pulses rather than spinning, and names the operation.
+ * A spinner says "wait"; the text says what is being waited on. */
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+.loading {
+  animation: breathe 1.6s ease-in-out infinite;
+  color: var(--ink-2);
+}
+
+.loading::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: var(--s2);
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.service-link,
+.sub-link,
+.home-link,
+.actor,
+a {
+  transition: color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+
+/* ── Logo ───────────────────────────────────────────────── */
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.logo-glyph { flex: 0 0 auto; display: block; }
+
+.logo-word {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+
+.entry-mark .logo-word { font-size: 30px; }
+
+/* ── Two-column working page ────────────────────────────── */
+
+/* A form alone on a wide screen is the emptiness problem. The work sits left
+ * on a measured column; what the deployment can actually do sits right, where
+ * it is read before typing rather than discovered in a result. */
+.work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--s6);
+  align-items: start;
+  max-width: 1100px;
+  padding: var(--s6) var(--s5) var(--s8);
+}
+
+.work-main { min-width: 0; }
+
+.status {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: var(--s4);
+  box-shadow: var(--lift-1);
+  position: sticky;
+  top: var(--s4);
+}
+
+.status-down { border-left: 3px solid var(--u1); }
+
+.status-list { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s3); }
+
+.status-item { display: flex; gap: var(--s2); align-items: flex-start; }
+
+/* A square, not a tick or a cross: this is a state, not a verdict, and a green
+ * tick beside "interaction checking off" would read as approval. */
+.status-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+}
+
+.status-on  { background: var(--accent); }
+.status-off { background: transparent; border: 2px solid var(--rule-strong); }
+
+.status-text { display: flex; flex-direction: column; gap: 4px; }
+.status-caveat { line-height: 1.45; }
+
+@media (max-width: 900px) {
+  .work { grid-template-columns: minmax(0, 1fr); gap: var(--s5); }
+  .status { position: static; }
+}
+
+@media (max-width: 640px) {
+  .work { padding: var(--s5) var(--s3) var(--s7); }
+}
+
+/* Inside the two-column frame the page no longer supplies its own padding or
+ * measure: the grid owns both. */
+.work-main .page { padding: 0; max-width: none; }

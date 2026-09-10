@@ -67,9 +67,9 @@ describe("NameEntry", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
   });
 
-  it("says the name is not verified", () => {
+  it("says nothing verifies the name", () => {
     render(<NameEntry onSubmit={() => {}} />);
-    expect(screen.getByText(/not verified/)).toBeInTheDocument();
+    expect(screen.getByText(/nothing verifies it/)).toBeInTheDocument();
   });
 
   it("passes the name on once one is typed", async () => {

@@ -10,8 +10,8 @@ import type { Band } from "./types";
 
 /* Bands as the patient reads them. No condition names, no probabilities. */
 export const BAND_TEXT: Record<Band, string> = {
-  U1: "Emergency — go now",
-  U2: "Urgent — see a doctor today",
+  U1: "Emergency. Go now",
+  U2: "Urgent. See a doctor today",
   U3: "See a doctor within 24 to 48 hours",
   U4: "See a doctor within a week",
   U5: "You can manage this at home",
@@ -19,11 +19,11 @@ export const BAND_TEXT: Record<Band, string> = {
 
 /* Bands as a clinician reads them. */
 export const BAND_TEXT_CLINICAL: Record<Band, string> = {
-  U1: "U1 — Immediate",
-  U2: "U2 — Urgent, same day",
-  U3: "U3 — Semi-urgent, 24 to 48 hours",
-  U4: "U4 — Routine, within a week",
-  U5: "U5 — Self-care with a safety net",
+  U1: "U1 Immediate",
+  U2: "U2 Urgent, same day",
+  U3: "U3 Semi-urgent, 24 to 48 hours",
+  U4: "U4 Routine, within a week",
+  U5: "U5 Self-care with a safety net",
 };
 
 /* Specialty as a patient reads it: the plain name first, the clinical term in

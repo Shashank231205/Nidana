@@ -5,45 +5,71 @@
  * 1. The urgency palette (--u1..--u5) appears on urgency elements and nowhere
  *    else. Not a button, not a link, not a border, not an icon. A patient who
  *    sees red reads it as an emergency.
- * 2. There is no accent colour. Emphasis is size and weight, never hue.
+ * 2. There is exactly one accent, it is deep green, and it means "you can act
+ *    on this". It never carries clinical meaning, which is what keeps it from
+ *    competing with the urgency ramp.
  */
 
 :root {
-  /* Ground and text */
-  --page: #F5F2EC;
-  --surface: #EFEBE3;
-  --ink: #171614;
-  --ink-2: #5A5751;
-  --ink-3: #6E6A62;
-  --rule: #D6D0C6;
-  --rule-strong: #171614;
-  --ink-hover: #2A2825;
+  /* Ground. Three of them, because one flat colour gives a page nothing to
+   * build hierarchy with: --page is the room, --surface is a panel lifted off
+   * it, --sunken is an inset area like a sub-navigation or a table head.
+   *
+   * The page is the deepest of the three and panels are lighter, which is the
+   * opposite of the usual white-page-with-grey-cards. It is what stops a
+   * screen with one small form on it from reading as an empty white field. */
+  --page: #EFE7D9;
+  --surface: #F7F2E8;
+  --sunken: #E2D6C2;
+  --raised: #FDFBF7;
+
+  /* Ink. Warm near-black rather than grey, so text sits in the same family as
+   * the ground instead of floating on it. Every value clears 4.5:1 on all
+   * three grounds, including --sunken, which is the darkest and the one an
+   * eyeballed palette gets wrong. */
+  --ink: #241C12;      /* 13.68:1 on page */
+  --ink-2: #5A4B39;    /*  6.84:1 */
+  --ink-3: #685941;    /*  5.53:1, and 4.73:1 on sunken */
+  --rule: #DCCFB8;
+  --rule-strong: #B9A585;
+  --ink-hover: #000000;
+
+  /* The one accent. Deep green: unmistakably clinical, and far enough from
+   * the five urgency hues in both hue and lightness that no screen can
+   * confuse "actionable" with "urgent". It marks interactive things only. */
+  --accent: #0E6B54;   /* 5.26:1 on page */
+  --accent-strong: #0A5140;
+  --accent-wash: rgba(14, 107, 84, 0.08);
+  --on-accent: #FDFBF7;
 
   /* Urgency.
    *
    * Every band clears 4.5:1 against --page, so it is legible as text and as a
    * fill under --on-urgency. Measured, not estimated.
    *
-   * What these colours do NOT do is survive colour blindness. Simulated
-   * (Vienot 1999), U1 and U4 collapse to 1.01:1 under deuteranopia -- "go
-   * now" and "within a week", indistinguishable, for roughly 8% of men. Five
-   * hues cannot be made reliably separable for red-green deficiency and no
-   * amount of tuning fixes it.
-   *
-   * So the band is carried by text and position, and the colour reinforces it.
-   * A screen that needs the colour read to be safe is a broken screen. */
-  --u1: #A81E11;  /* 6.57:1  immediate danger */
-  --u2: #9E4715;  /* 5.58:1  same day */
-  --u3: #655A1C;  /* 6.20:1  24-48 hours */
-  --u4: #3D6B52;  /* 5.49:1  within a week */
-  --u5: #3B5A73;  /* 6.49:1  manage at home */
-  --on-urgency: #F5F2EC;
+   * What these colours do NOT do is survive colour blindness. Simulated, the
+   * extreme bands collapse toward one another for roughly 8% of men, and no
+   * five-hue ramp avoids that. So the band is carried by text and position,
+   * and the colour reinforces it. A screen that needs the colour read to be
+   * safe is a broken screen. */
+  --u1: #A3221A;  /* 6.11:1  immediate danger */
+  --u2: #8F4410;  /* 5.70:1  same day */
+  --u3: #5F5310;  /* 6.26:1  24-48 hours */
+  --u4: #175C40;  /* 6.47:1  within a week */
+  --u5: #1B4762;  /* 8.05:1  manage at home */
+  --on-urgency: #FDFBF7;
+
+  /* Depth. Tinted with the ink rather than black, so a lifted panel reads as
+   * paper on a desk and not as a grey blur behind a box. */
+  --lift-1: 0 1px 2px rgba(36, 28, 18, 0.07), 0 1px 1px rgba(36, 28, 18, 0.05);
+  --lift-2: 0 2px 4px rgba(36, 28, 18, 0.07), 0 6px 16px rgba(36, 28, 18, 0.06);
+  --lift-3: 0 12px 32px rgba(36, 28, 18, 0.10);
 
   /* Type. Self-hosted; the product runs on-premise with no network egress,
    * so a webfont CDN would be a runtime dependency it cannot have. */
   --sans: "Archivo", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --serif: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
-  --mono: "Archivo", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
 
   --size-question: 48px;
   --size-statement: 32px;
@@ -63,4 +89,11 @@
   --patient-left: 120px;
   --patient-top: 96px;
   --clinician-margin: 48px;
+
+  /* Motion. Short and eased out: the screen settles rather than performs.
+   * Every duration here is zeroed under prefers-reduced-motion. */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fast: 120ms;
+  --medium: 240ms;
+  --slow: 420ms;
 }

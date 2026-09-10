@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Logo } from "./Logo";
 
 /* Ask who is at the machine, and be honest about what that is worth.
  *
@@ -19,7 +20,9 @@ export function NameEntry({ onSubmit }: Props): JSX.Element {
 
   return (
     <main className="entry">
-      <p className="wordmark entry-mark">Nidana</p>
+      <p className="wordmark entry-mark">
+        <Logo size={34} />
+      </p>
 
       <form
         className="entry-form"
@@ -41,8 +44,8 @@ export function NameEntry({ onSubmit }: Props): JSX.Element {
         />
 
         <p className="body secondary entry-note">
-          This name is recorded against everything you sign or amend. It is not
-          verified — there is no login yet — so type the name you would put on
+          This name is recorded against everything you sign or amend. There is
+          no login yet, so nothing verifies it. Type the name you would put on
           the record.
         </p>
 

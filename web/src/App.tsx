@@ -3,6 +3,8 @@ import { SubNav } from "./shell/SubNav";
 import { NameEntry } from "./shell/NameEntry";
 import { Home } from "./shell/Home";
 import { serviceById } from "./shell/services";
+import { ServiceStatus } from "./shell/ServiceStatus";
+import type { ServiceId } from "./lib/http";
 import { useRoute, navigate } from "./shell/useRoute";
 import { useIdentity } from "./shell/useIdentity";
 import { PatientConsult } from "./services/consult/patient/PatientConsult";
@@ -93,7 +95,14 @@ export function App(): JSX.Element {
       {service === undefined ? (
         <Home actor={actor} />
       ) : (
-        screenFor(service.id, route.screen, actor)
+        /* Every service screen sits beside what the deployment can actually
+         * do. A form alone on a wide screen is the emptiness this fixes, and
+         * the capability list is read before typing rather than discovered in
+         * a result. */
+        <div className="work">
+          <div className="work-main">{screenFor(service.id, route.screen, actor)}</div>
+          <ServiceStatus service={service.id as ServiceId} />
+        </div>
       )}
     </>
   );

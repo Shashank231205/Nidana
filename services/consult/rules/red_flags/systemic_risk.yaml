@@ -21,6 +21,27 @@ rules:
       score. A clinician should decide whether that is sufficient or whether
       this rule should be widened.
     verify_before_ship: true
+    # panel review for RF_SEPSIS_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "clinical informatics specialist familiar with sepsis guidelines"
+      dossier_path: "docs/verification/panel/RF_SEPSIS_001.md"
+      concerns:
+        - "Missed patients exist."
+        - "The emergency physician identified a 58‑year‑old male with Crohn’s disease who presents with fever and severe abdominal pain but lacks altered consciousness, rigors, dyspnea, or rash."
+        - "The safety engineer highlighted patients who meet sepsis physiological criteria (hypotension, tachypnea, reduced urine output, immunosuppression) yet do not report fever, such as a 45‑year‑old immunocompromised male and a 12‑year‑old postoperative female."
+        - "The Indian practice reviewer noted that many septic patients in low‑resource Indian settings present without fever (e.g., abdominal sepsis, atypical pneumonia, intra‑abdominal infection) and that the rule’s age thresholds and fever requirement may miss these cases."
+        - "Over‑referrals are possible."
+        - "The emergency physician’s example (fever present but no altered consciousness) shows the rule could terminate the emergency session for patients who do not truly require escalation, potentially wasting resources."
+        - "The safety engineer’s example of a mildly febrile patient with no other sepsis signs illustrates that the rule may fire unnecessarily, leading to unnecessary termination."
+        - "The rule’s design is overly restrictive."
+        - "All three reviewers agree that the rule’s reliance on fever_reported_present as the primary trigger is insufficient for detecting sepsis in populations where fever is absent or under‑reported."
+        - "The inclusion of ancillary criteria (altered consciousness, rigors, reduced urine output, breathing difficulty, rash) is not sufficient to capture the full spectrum of sepsis presentations in the Indian context."
+        - "Emergency physician: Argues that the rule should be expanded to include abdominal pain as a valid sepsis indicator when combined with fever and known immunosuppressive disease (e.g., Crohn’s disease)."
+        - "Safety engineer: Proposes that the rule should be revised to allow escalation based on physiological signs (hypotension, tachypnea, reduced urine output) even if fever is absent, and to retain fever only as an optional early‑warning flag."
 
   - id: RF_DKA_001
     label: Features suggesting diabetic ketoacidosis
@@ -33,6 +54,27 @@ rules:
       known diabetes, which is not yet a predicate because comorbidities are not
       a registry field. That gap is real and needs closing before this ships.
     verify_before_ship: true
+    # panel review for RF_DKA_001: a record that the reading was
+    # done, not a verification. This rule still blocks a release.
+    review:
+      reviewed_on: 2026-09-10
+      models: [granite4.1:3b]
+      panel_version: 1.0.0
+      refer_to: "diabetes-status"
+      dossier_path: "docs/verification/panel/RF_DKA_001.md"
+      concerns:
+        - "Misses – The rule will miss patients with diabetic ketoacidosis who do not present with the specific respiratory, vomiting, or oral‑intake criteria captured in the rule. This includes:"
+        - "DKA without altered consciousness (e.g., classic abdominal‑pain‑vomiting DKA in a diabetic patient who is otherwise alert)."
+        - "DKA with altered consciousness but without vomiting (e.g., mild DKA with confusion but no vomiting)."
+        - "Non‑DKA emergencies that satisfy the rule’s branches (e.g., acute pancreatitis, severe gastroenteritis, or dehydration from fever)."
+        - "Over‑referrals – The rule will also fire on non‑DKA presentations that meet the criteria, such as:"
+        - "Acute pancreatitis in a diabetic patient (vomiting, minimal oral intake, respiratory distress)."
+        - "Acute appendicitis or other abdominal emergencies (vomiting, minimal intake, respiratory distress)."
+        - "Mild dehydration from fever (vomiting, minimal intake, respiratory distress) that does not meet DKA thresholds."
+        - "Schema limitation – The rule implicitly assumes that any patient meeting the criteria is diabetic. The current registry lacks a “known_diabetes” predicate, making it impossible to distinguish DKA from other vomiting‑abdominal pain syndromes. This is a fundamental schema gap that must be addressed before the rule can be safely deployed."
+        - "Emergency Physician: Argues that the rule’s narrow gating (breathing difficulty + vomiting + minimal oral intake) is acceptable because it avoids false positives in non‑DKA emergencies, thereby protecting against missed DKA. The primary concern is the risk of missing DKA that presents without vomiting or altered consciousness."
+        - "Safety Engineer: Emphasizes that the rule’s current form leads to high false‑positive rates (over‑referrals), which can cause unnecessary termination of the emergency session, increased resource consumption, and potential harm from premature escalation. Suggests that the rule should be revised to include a diabetes‑status predicate before deployment."
+        - "Indian Practice Reviewer: Highlights that in low‑resource settings, many DKA patients present with abdominal pain and vomiting without immediate neuro‑glycopenic changes. The absence of a diabetes field means the rule cannot reliably detect DKA, leading to missed diagnoses and delayed treatment. Recommends adding a diabetes gating criterion or a separate rule for DKA detection."
 
   - id: RF_DEHYDRATION_001
     label: Significant dehydration

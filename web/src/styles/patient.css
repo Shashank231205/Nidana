@@ -104,3 +104,15 @@
   .outcome-actions .link,
   .confirm-actions .link { width: auto; }
 }
+
+
+/* The patient answers one question with one large field. It keeps the heavy
+ * baseline the clinician forms dropped: at 48px type on a phone held at arm's
+ * length, a 1px border round a box disappears and the line does not. */
+.patient .field {
+  background: var(--surface);
+  border: 0;
+  border-bottom: 3px solid var(--ink);
+  padding: 16px;
+  font-size: var(--size-body);
+}
