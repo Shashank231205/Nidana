@@ -94,9 +94,16 @@ def _plain(delta: timedelta) -> str:
     return f"about {hours}h {rest}m"
 
 
-def _default_log() -> Path:
-    """Where the panel writes when started by scripts/run_panel.py."""
-    return ROOT / ".local" / "panel.log"
+def _default_log() -> Path | None:
+    """Where the panel writes when started by scripts/run_panel.py.
+
+    A copy of that log is not a substitute: a snapshot taken once reports the
+    rule the panel was on when it was copied, which is worse than reporting
+    nothing because it looks current. So a missing file returns None and the
+    screen shows progress without a pace.
+    """
+    log = ROOT / ".local" / "panel.log"
+    return log if log.is_file() else None
 
 
 def _current_rule(log: Path | None) -> tuple[str, int, int] | None:

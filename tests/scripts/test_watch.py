@@ -8,10 +8,11 @@ takes all day. These tests pin the cases where it must decline to guess.
 from __future__ import annotations
 
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
-from scripts.watch import Progress, _bar, _plain, render
+from scripts.watch import Progress, _bar, _current_rule, _plain, render
 
 
 def progress(**overrides: object) -> Progress:
@@ -104,3 +105,24 @@ class TestPlainWords:
         self, seconds: int, expected: str
     ) -> None:
         assert _plain(timedelta(seconds=seconds)) == expected
+
+
+class TestReadingTheLog:
+    def test_no_log_reports_nothing_rather_than_guessing(self) -> None:
+        """A stale copy is worse than no log: it looks current."""
+        assert _current_rule(None) is None
+
+    def test_a_missing_file_reports_nothing(self, tmp_path: Path) -> None:
+        assert _current_rule(tmp_path / "absent.log") is None
+
+    def test_it_reads_the_last_position_not_the_first(self, tmp_path: Path) -> None:
+        log = tmp_path / "panel.log"
+        log.write_text(
+            "[1/16] RF_STROKE_001\n[8/16] RF_VISION_LOSS_001\n", encoding="utf-8"
+        )
+        assert _current_rule(log) == ("RF_VISION_LOSS_001", 8, 16)
+
+    def test_a_log_with_no_position_lines_reports_nothing(self, tmp_path: Path) -> None:
+        log = tmp_path / "panel.log"
+        log.write_text("starting\nloading model\n", encoding="utf-8")
+        assert _current_rule(log) is None
