@@ -1,80 +1,15 @@
-/* The Consult API client.
+/* Patient- and clinician-facing wording.
  *
- * Two things this module is responsible for and the screens are not:
- *
- * 1. Turn responses are dispatched on `shape`. There is no status string to
- *    parse and no inference about which fields are populated.
- * 2. Error `detail` from the backend is written to state the remedy, so it is
- *    carried through verbatim rather than replaced with a generic message.
+ * Ported verbatim from the vanilla build. These tables are the substance of
+ * the patient surface: a specialty a patient cannot name is a referral they
+ * cannot act on, and a capability list is what stops someone being sent to a
+ * hospital that cannot treat them.
  */
 
-const BASE = window.NIDANA_API_BASE || "";
-
-export class ApiError extends Error {
-  constructor(status, detail) {
-    super(detail);
-    this.status = status;
-    this.detail = detail;
-  }
-}
-
-async function request(method, path, body) {
-  let response;
-  try {
-    response = await fetch(BASE + path, {
-      method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  } catch (cause) {
-    throw new ApiError(
-      0,
-      "Cannot reach the Nidana server on this machine. Check that it is running.",
-    );
-  }
-
-  if (!response.ok) {
-    let detail = `${response.status} ${response.statusText}`;
-    try {
-      const payload = await response.json();
-      if (typeof payload.detail === "string") {
-        detail = payload.detail;
-      } else if (Array.isArray(payload.detail) && payload.detail.length) {
-        // 422 from FastAPI validation: a list of per-field errors.
-        detail = payload.detail.map((item) => item.msg).join("; ");
-      }
-    } catch (cause) {
-      // A non-JSON error body leaves the status line as the detail.
-    }
-    throw new ApiError(response.status, detail);
-  }
-
-  return response.json();
-}
-
-export const createSession = () => request("POST", "/v1/sessions");
-
-export const submitTurn = (sessionId, utterance) =>
-  request("POST", `/v1/sessions/${sessionId}/turns`, { utterance });
-
-export const readSession = (sessionId) =>
-  request("GET", `/v1/sessions/${sessionId}`);
-
-export const completeSession = (sessionId) =>
-  request("POST", `/v1/sessions/${sessionId}/complete`);
-
-export const readAudit = (sessionId) =>
-  request("GET", `/v1/sessions/${sessionId}/audit`);
-
-/* The three shapes, named. A screen switches on this and nothing else. */
-export const SHAPE = {
-  NEXT_QUESTION: "next_question",
-  TERMINAL_EMERGENCY: "terminal_emergency",
-  COMPLETED_TRIAGE: "completed_triage",
-};
+import type { Band } from "./types";
 
 /* Bands as the patient reads them. No condition names, no probabilities. */
-export const BAND_TEXT = {
+export const BAND_TEXT: Record<Band, string> = {
   U1: "Emergency — go now",
   U2: "Urgent — see a doctor today",
   U3: "See a doctor within 24 to 48 hours",
@@ -83,7 +18,7 @@ export const BAND_TEXT = {
 };
 
 /* Bands as a clinician reads them. */
-export const BAND_TEXT_CLINICAL = {
+export const BAND_TEXT_CLINICAL: Record<Band, string> = {
   U1: "U1 — Immediate",
   U2: "U2 — Urgent, same day",
   U3: "U3 — Semi-urgent, 24 to 48 hours",
@@ -93,7 +28,7 @@ export const BAND_TEXT_CLINICAL = {
 
 /* Specialty as a patient reads it: the plain name first, the clinical term in
  * brackets. A patient looking for a doctor needs the word on the door. */
-export const SPECIALTY_TEXT = {
+export const SPECIALTY_TEXT: Record<string, string> = {
   emergency: "an emergency department",
   general_medicine: "a general physician",
   cardiology: "a heart doctor (cardiologist)",
@@ -123,7 +58,7 @@ export const SPECIALTY_TEXT = {
 
 /* What a facility must be able to do, in words a patient can act on.
  * Sending someone to the nearest hospital is wrong if it cannot treat them. */
-export const CAPABILITY_TEXT = {
+export const CAPABILITY_TEXT: Record<string, string> = {
   emergency_24x7: "An emergency department open 24 hours",
   cath_lab: "A heart procedure room (cath lab)",
   ct_scanner: "A CT scanner",
@@ -143,5 +78,8 @@ export const CAPABILITY_TEXT = {
   endoscopy: "An endoscopy unit",
 };
 
-export const capabilityText = (key) =>
-  CAPABILITY_TEXT[key] || key.replace(/_/g, " ");
+export const capabilityText = (key: string): string =>
+  CAPABILITY_TEXT[key] ?? key.replace(/_/g, " ");
+
+export const specialtyText = (key: string): string =>
+  SPECIALTY_TEXT[key] ?? key.replace(/_/g, " ");

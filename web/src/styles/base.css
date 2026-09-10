@@ -1,0 +1,357 @@
+/* The complete component set. Nothing outside this file exists in the UI. */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/Archivo-Variable.woff2") format("woff2-variations");
+  font-weight: 400 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Newsreader";
+  src: url("/fonts/Newsreader-Italic-Variable.woff2") format("woff2-variations");
+  font-weight: 400 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { background: var(--page); }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--size-body);
+  line-height: 1.5;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Corner radius is 0 everywhere except the microphone. */
+button, input, textarea, select { border-radius: 0; font: inherit; color: inherit; }
+
+/* Visible keyboard focus on every interactive element. */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Type scale ─────────────────────────────────────────────── */
+
+.question  { font-size: var(--size-question);  line-height: 1.15; font-weight: 500; letter-spacing: -0.02em;  margin: 0; }
+.statement { font-size: var(--size-statement); line-height: 1.25; font-weight: 500; letter-spacing: -0.015em; margin: 0; }
+.criterion { font-size: var(--size-criterion); line-height: 1.35; font-weight: 400; margin: 0; }
+.body      { font-size: var(--size-body);      line-height: 1.5;  margin: 0; }
+.data      { font-size: var(--size-data);      line-height: 1.45; margin: 0; }
+
+.label {
+  font-size: var(--size-label);
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  margin: 0;
+  /* Sentence case. Never all-caps letter-spaced eyebrow text. */
+  text-transform: none;
+}
+
+.meta {
+  font-size: var(--size-meta);
+  line-height: 1.4;
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.secondary { color: var(--ink-2); }
+.tertiary  { color: var(--ink-3); }
+
+/* ── Rules ──────────────────────────────────────────────────── */
+
+.rule          { border: 0; border-top: 1px solid var(--rule);        margin: 0; }
+.rule-emphasis { border: 0; border-top: 1px solid var(--rule-strong); margin: 0; }
+
+/* ── Buttons ────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-block;
+  font-size: var(--size-body);
+  font-weight: 500;
+  line-height: 1.5;
+  padding: 16px 32px;
+  border-radius: 0;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  max-width: 100%;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--page);
+  border-color: var(--ink);
+}
+.btn-primary:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.btn-secondary:hover { background: rgba(23, 22, 20, 0.04); }
+
+.btn:disabled { color: var(--ink-3); border-color: var(--rule); background: transparent; cursor: default; }
+.btn-primary:disabled { background: var(--rule); color: var(--page); }
+
+/* ── Text link ──────────────────────────────────────────────── */
+
+.link {
+  color: var(--ink);
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.link:hover { text-decoration-thickness: 2px; }
+
+/* ── Checkbox ───────────────────────────────────────────────── */
+
+.checkbox { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+
+.checkbox input {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 1px solid var(--ink);
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+}
+.checkbox input::before {
+  content: "";
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid var(--page);
+  border-bottom: 2px solid var(--page);
+  transform: rotate(-45deg) translate(1px, -1px);
+  opacity: 0;
+}
+.checkbox input:checked { background: var(--ink); }
+.checkbox input:checked::before { opacity: 1; }
+.checkbox span { font-size: var(--size-body); line-height: 1.5; }
+
+/* ── Text field ─────────────────────────────────────────────── */
+
+.field {
+  display: block;
+  width: 100%;
+  background: var(--surface);
+  border: 0;
+  border-bottom: 3px solid var(--ink);
+  padding: 16px;
+  font-size: var(--size-body);
+  font-family: var(--sans);
+  line-height: 1.5;
+  resize: none;
+}
+.field:focus { outline: none; }
+.field:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.field::placeholder { color: var(--ink-3); }
+
+/* ── Microphone: the one circular element in the product ────── */
+
+.mic {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.mic svg { width: 32px; height: 32px; display: block; }
+
+.mic[data-state="active"] {
+  background: var(--ink);
+  color: var(--page);
+  /* Opacity on the border only. No scale, no ripple, no waveform. */
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { border-color: var(--ink); }
+  50%      { border-color: rgba(23, 22, 20, 0.25); }
+}
+
+/* ── Urgency marker: bands U2 to U5 ─────────────────────────── */
+
+.urgency-marker {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+}
+.urgency-marker::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 4px;
+  min-height: 1.5em;
+  background: var(--band);
+}
+/* Text is ink, not the band colour. The rule carries the hue. */
+.urgency-marker span {
+  font-size: var(--size-body);
+  font-weight: 500;
+  color: var(--ink);
+  align-self: center;
+}
+
+.band-u1 { --band: var(--u1); }
+.band-u2 { --band: var(--u2); }
+.band-u3 { --band: var(--u3); }
+.band-u4 { --band: var(--u4); }
+.band-u5 { --band: var(--u5); }
+
+/* ── Urgency band: U1 only. The only full-bleed colour. ─────── */
+
+.urgency-band {
+  background: var(--u1);
+  color: var(--on-urgency);
+  padding: 32px 48px;
+  font-size: var(--size-statement);
+  line-height: 1.25;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+/* ── Data row ───────────────────────────────────────────────── */
+
+.data-row { border-bottom: 1px solid var(--rule); }
+
+.data-row-line {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  font-family: inherit;
+}
+button.data-row-line { cursor: pointer; }
+
+.data-row-label {
+  flex: 0 0 140px;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+.data-row-value { flex: 1 1 auto; font-size: var(--size-data); color: var(--ink); }
+
+.chevron {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid var(--ink-2);
+  border-bottom: 1px solid var(--ink-2);
+  transform: rotate(45deg);
+  transition: transform 120ms linear;
+}
+[aria-expanded="true"] .chevron { transform: rotate(-135deg); }
+
+/* ── Verbatim quote: the patient's own voice ────────────────── */
+
+.verbatim {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: var(--size-body);
+  color: var(--ink-2);
+  margin: 0 0 12px 24px;
+  padding-left: 16px;
+  border-left: 2px solid var(--rule);
+}
+
+/* ── Service tile: home screen only ─────────────────────────── */
+
+.tile {
+  display: block;
+  border-top: 1px solid var(--rule-strong);
+  padding-top: 16px;
+  margin-bottom: 32px;
+  text-decoration: none;
+  color: inherit;
+}
+.tile-name { font-size: var(--size-criterion); line-height: 1.35; font-weight: 500; margin: 0; }
+.tile-desc { font-size: var(--size-data); line-height: 1.45; color: var(--ink-2); margin: 8px 0 0; }
+.tile-status { font-size: var(--size-meta); color: var(--ink-3); margin: 8px 0 0; }
+
+a.tile:hover .tile-name {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.tile-unavailable .tile-name,
+.tile-unavailable .tile-desc { color: var(--ink-3); }
+
+/* ── Loading state: names the operation, never a spinner ────── */
+
+.loading { font-size: var(--size-body); color: var(--ink-2); }
+
+/* ── Mono, audit trail only ─────────────────────────────────── */
+
+.mono {
+  font-family: var(--mono);
+  font-size: var(--size-mono);
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+
+/* The measure is the content width; the padding sits outside it, so the box
+   is sized border-box to keep the whole block inside a 320px viewport. */
+.patient {
+  max-width: calc(var(--measure) + var(--patient-left) + var(--s6));
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--patient-top) var(--s6) var(--s8) var(--patient-left);
+}
+
+/* Long clinical words (specialty names, transliterated utterances) must break
+   rather than push the page sideways. The body never scrolls horizontally. */
+.patient, .clinician { overflow-wrap: break-word; }
+
+.clinician { padding: var(--s6) var(--clinician-margin); }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+[hidden] { display: none !important; }

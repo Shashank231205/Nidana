@@ -23,13 +23,13 @@ from typing import Final
 from spine.schemas.triage import Capability, Specialty
 
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[2]
-API_CLIENT: Final[Path] = REPO_ROOT / "web" / "shared" / "api.js"
+API_CLIENT: Final[Path] = REPO_ROOT / "web" / "src" / "lib" / "text.ts"
 
 
 def _mapped_keys(marker: str, until: str | None) -> set[str]:
     """The keys of one translation map in the frontend client.
 
-    Parsed rather than imported: it is JavaScript, and a test that shelled out
+    Parsed rather than imported: it is TypeScript, and a test that shelled out
     to node to read it would fail on a machine without node for a reason that
     has nothing to do with the vocabulary.
     """

@@ -1,0 +1,106 @@
+/* Patient surface.
+ *
+ * Space is the primary structuring device: 64px or more between major blocks.
+ * The measure is 640px and the remaining canvas stays empty. No sidebar, no
+ * second column, no illustration, no centred card. The emptiness is the design.
+ */
+
+/* ── Start ──────────────────────────────────────────────────── */
+
+.start-statement  { margin-top: var(--s7); }
+.start-note       { margin-top: var(--s4); }
+.start-consent    { margin-top: var(--s7); }
+.start-action     { margin-top: var(--s5); }
+.start-emergency  { margin-top: var(--s8); }
+.start-status     { margin-top: var(--s4); }
+
+/* ── Question ───────────────────────────────────────────────── */
+
+.question         { margin-top: var(--s4); }
+.mic-block        { margin-top: var(--s7); }
+.mic-hint         { margin-top: var(--s3); }
+.type-instead     { margin-top: var(--s6); }
+
+#capture-confirm  { margin-top: var(--s7); }
+.confirm-actions  {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  margin-top: var(--s3);
+}
+.question-status  { margin-top: var(--s4); }
+
+/* ── Emergency ──────────────────────────────────────────────── */
+
+.emergency-body          { padding-top: var(--s7); }
+.emergency-capabilities  { margin-top: var(--s6); }
+.emergency-action        { margin-top: var(--s6); }
+.emergency-call          { margin-top: var(--s4); }
+
+.plain { list-style: none; margin: 0; padding: 0; }
+
+/* The facility requirement is clinically load-bearing: the nearest hospital is
+   the wrong hospital if it cannot treat what the patient has. Set as a
+   readable list, not a footnote. */
+.capability-list { margin-top: var(--s3); }
+.capability-list li {
+  font-size: var(--size-body);
+  line-height: 1.5;
+  margin-top: var(--s1);
+}
+
+/* ── Outcome ────────────────────────────────────────────────── */
+
+.outcome-specialty { margin-top: var(--s3); }
+
+.return-criteria   { margin-top: var(--s7); }
+.criteria-list     { margin-top: var(--s5); }
+
+/* Set so they cannot be skimmed past. This block is visually heavier than
+   everything above it, which is the point. */
+.criteria-list li {
+  font-size: var(--size-criterion);
+  line-height: 1.35;
+}
+.criteria-list li + li { margin-top: var(--s5); }
+
+.outcome-divider   { margin-top: var(--s7); }
+
+/* Quiet, below the rule. The button label carries a specialty name and can run
+   long, so the row wraps rather than forcing the link off the measure. */
+.outcome-actions   {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  row-gap: var(--s3);
+  margin-top: var(--s5);
+  flex-wrap: wrap;
+}
+
+/* ── Error ──────────────────────────────────────────────────── */
+
+.error-detail { margin-top: var(--s4); }
+.error-action { margin-top: var(--s6); }
+
+/* ── Narrow ─────────────────────────────────────────────────── */
+
+/* Extra width on desktop buys larger type, not more elements; narrow width
+   takes the type back down. The screen holds the same number of things. */
+@media (max-width: 800px) {
+  .patient {
+    padding-left: var(--s4);
+    padding-right: var(--s4);
+    padding-top: var(--s6);
+  }
+  .urgency-band { padding: var(--s4); }
+  :root {
+    --size-question: 32px;
+    --size-statement: 26px;
+    --size-criterion: 20px;
+  }
+  .confirm-actions,
+  .outcome-actions { flex-direction: column; align-items: flex-start; }
+  .btn { width: 100%; }
+  .outcome-actions .link,
+  .confirm-actions .link { width: auto; }
+}

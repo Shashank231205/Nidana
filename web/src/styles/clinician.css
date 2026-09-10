@@ -1,0 +1,109 @@
+/* Clinician surface.
+ *
+ * A different design language from the patient screens, not the same layout
+ * stretched. Full width, 12 to 16px between rows, genuinely dense. No cards,
+ * no sidebar, no widgets, no charts, no avatar.
+ */
+
+.plain { list-style: none; margin: 0; padding: 0; }
+
+/* ── Packet head ────────────────────────────────────────────── */
+
+.packet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s6);
+  margin-bottom: var(--s3);
+}
+.packet-triage    { text-align: right; }
+.packet-triage .urgency-marker { justify-content: flex-end; }
+.packet-specialty { font-weight: 500; margin-top: var(--s1); }
+.packet-critic    { margin-top: 4px; }
+
+/* ── Two columns, 55/45, hairline rule between ──────────────── */
+
+.columns {
+  display: grid;
+  grid-template-columns: 55fr 45fr;
+  gap: var(--s6);
+  margin-top: var(--s4);
+}
+.column-differential {
+  border-left: 1px solid var(--rule);
+  padding-left: var(--s6);
+}
+
+#history        { margin-top: var(--s2); }
+#differential   { margin-top: var(--s2); }
+
+/* ── Differential entries ───────────────────────────────────── */
+
+/* Supporting and opposing must be distinguishable at a glance — that is the
+   part a doctor actually reads. The distinction is the label, not a colour:
+   the urgency palette is the only colour in the product. */
+.diff-entry     { padding: var(--s2) 0; border-bottom: 1px solid var(--rule); }
+.diff-condition { font-size: var(--size-data); font-weight: 500; margin: 0; }
+
+.diff-evidence  {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s1);
+  align-items: baseline;
+}
+.diff-evidence dt {
+  flex: 0 0 84px;
+  font-size: var(--size-label);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+.diff-evidence dd {
+  flex: 1 1 auto;
+  font-size: var(--size-data);
+  margin: 0;
+}
+
+/* Gaps in a history are clinically meaningful and most summaries hide them. */
+.gaps       { margin-top: var(--s5); }
+.gaps ul    { margin-top: var(--s2); }
+.gaps li    { font-size: var(--size-data); padding: 4px 0; }
+
+/* ── Packet foot ────────────────────────────────────────────── */
+
+.packet-foot-rule { margin-top: var(--s6); }
+.packet-actions   { display: flex; gap: var(--s2); margin-top: var(--s4); }
+
+/* ── Audit trail ────────────────────────────────────────────── */
+
+.audit-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.audit-time   { flex: 0 0 80px;  color: var(--ink); }
+.audit-actor  { flex: 0 0 170px; color: var(--ink); }
+.audit-action { flex: 1 1 auto;  color: var(--ink); }
+.audit-hash   { flex: 0 0 auto;  color: var(--ink-3); text-align: right; }
+
+.audit-actions { margin-top: var(--s5); }
+
+/* ── Narrow ─────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .clinician { padding-left: var(--s4); padding-right: var(--s4); }
+  .columns { grid-template-columns: 1fr; }
+  .column-differential {
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+    padding-left: 0;
+    padding-top: var(--s4);
+  }
+  .packet-head { flex-direction: column; gap: var(--s3); }
+  .packet-triage { text-align: left; }
+  .packet-triage .urgency-marker { justify-content: flex-start; }
+  .audit-row { flex-wrap: wrap; gap: var(--s2); }
+  .audit-hash { flex: 1 1 100%; text-align: left; }
+}

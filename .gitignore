@@ -35,3 +35,10 @@ data/knowledge_index.json
 # MIT-licensed source named in that script. A derived artefact, like the
 # knowledge index, and 6MB of it.
 services/rx/rules/brands/index.csv
+
+# Frontend build artefacts. node_modules is restored by `npm ci` from the
+# lockfile, which is committed; the tsbuildinfo files are incremental compiler
+# caches and differ between machines.
+node_modules/
+*.tsbuildinfo
+web/dist/

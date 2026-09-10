@@ -1,0 +1,66 @@
+/* Design tokens. Defined once, used everywhere.
+ *
+ * Two rules govern this file:
+ *
+ * 1. The urgency palette (--u1..--u5) appears on urgency elements and nowhere
+ *    else. Not a button, not a link, not a border, not an icon. A patient who
+ *    sees red reads it as an emergency.
+ * 2. There is no accent colour. Emphasis is size and weight, never hue.
+ */
+
+:root {
+  /* Ground and text */
+  --page: #F5F2EC;
+  --surface: #EFEBE3;
+  --ink: #171614;
+  --ink-2: #5A5751;
+  --ink-3: #6E6A62;
+  --rule: #D6D0C6;
+  --rule-strong: #171614;
+  --ink-hover: #2A2825;
+
+  /* Urgency.
+   *
+   * Every band clears 4.5:1 against --page, so it is legible as text and as a
+   * fill under --on-urgency. Measured, not estimated.
+   *
+   * What these colours do NOT do is survive colour blindness. Simulated
+   * (Vienot 1999), U1 and U4 collapse to 1.01:1 under deuteranopia -- "go
+   * now" and "within a week", indistinguishable, for roughly 8% of men. Five
+   * hues cannot be made reliably separable for red-green deficiency and no
+   * amount of tuning fixes it.
+   *
+   * So the band is carried by text and position, and the colour reinforces it.
+   * A screen that needs the colour read to be safe is a broken screen. */
+  --u1: #A81E11;  /* 6.57:1  immediate danger */
+  --u2: #9E4715;  /* 5.58:1  same day */
+  --u3: #655A1C;  /* 6.20:1  24-48 hours */
+  --u4: #3D6B52;  /* 5.49:1  within a week */
+  --u5: #3B5A73;  /* 6.49:1  manage at home */
+  --on-urgency: #F5F2EC;
+
+  /* Type. Self-hosted; the product runs on-premise with no network egress,
+   * so a webfont CDN would be a runtime dependency it cannot have. */
+  --sans: "Archivo", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --serif: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --mono: "Archivo", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --size-question: 48px;
+  --size-statement: 32px;
+  --size-criterion: 26px;
+  --size-body: 17px;
+  --size-data: 15px;
+  --size-label: 13px;
+  --size-meta: 12px;
+  --size-mono: 13px;
+
+  /* Spacing, 4px base */
+  --s1: 8px;   --s2: 12px;  --s3: 16px;  --s4: 24px;
+  --s5: 32px;  --s6: 48px;  --s7: 64px;  --s8: 96px;  --s9: 128px;
+
+  /* Layout */
+  --measure: 640px;
+  --patient-left: 120px;
+  --patient-top: 96px;
+  --clinician-margin: 48px;
+}
