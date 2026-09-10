@@ -19,7 +19,7 @@ Written 2026-09-10. Repository: `https://github.com/Shashank231205/Nidana`
 
 ## Where things stand
 
-82 commits, **1,248 tests passing**, nothing skipped. `mypy --strict` clean
+84 commits, **1,257 tests passing**, nothing skipped. `mypy --strict` clean
 across 179 files, ruff clean, all architectural boundaries hold, CI green.
 
 ```bash
@@ -40,8 +40,8 @@ All five services boot healthy through their real lifespans.
 ## The one thing running right now
 
 `scripts/review_rules.py` is running in the background over the red flag rules.
-**9 of 30 done**; each takes about eight minutes (four sequential model calls),
-so roughly 2.5 hours remain.
+**14 of 30 done**; each takes eight to eleven minutes (four sequential model
+calls at about 6 tokens/sec), so roughly 2.5 hours remain.
 
 It is resumable and skips rules that already carry a review, so if it stops:
 
@@ -70,7 +70,7 @@ reasoning is here.
 | `model_attested` | **No** | A deployment chose to run it without a clinician |
 | `clinician_verified` | No | A named person accepted responsibility |
 
-Current: 21 unreviewed, 9 ai_reviewed, 0 attested, 1 clinician_verified
+Current: 16 unreviewed, 14 ai_reviewed, 0 attested, 1 clinician_verified
 (`RF_UNDER_TWO_001`, which encodes a product scope boundary rather than a
 clinical criterion).
 
@@ -217,6 +217,22 @@ the name and the tuning meet, and it refuses an empty name.
 **The lesson, narrow and worth keeping: run one agent against a real model
 before believing the suite.**
 
+**A long run does not pick up a fix.** A third failure mode, found on
+2026-09-10. `_tidy_referral` was fixed at 22:18 and three rules written after
+midnight still stored untidied referrals — "Emergency Medicine / Critical
+Care – to evaluate the clinical impact of missed occult GI bleed and decide
+on", which reads as a specialty and is not one. The extractor was already
+correct; the panel process had imported the old module at start and holds it
+for its whole run.
+
+The fix was not to re-run the panel but to validate on `AiReview.refer_to`,
+which catches it at the write regardless of which extractor produced it. The
+three affected values were re-derived from their stored briefs rather than
+hand-edited, so the record still comes from the panel's own output.
+
+Generalised: **when a long-running job writes to the repo, validate at the
+write, not only at the producer.**
+
 ```bash
 NIDANA_MODEL_PRIMARY=granite4.1:3b python scripts/review_rules.py --only RF_ACS_001 --dry-run
 ```
@@ -242,6 +258,24 @@ If lost: fetch `https://curl.se/ca/cacert.pem` with curl, export the Avast root
 from `Cert:\LocalMachine\Root` via PowerShell as base64 PEM, concatenate.
 `tests/conftest.py` fails CI if an API test skips, so it cannot silently recur.
 
+**Environment variables the services read.** None are set by default, and the
+defaults are the safe direction in each case.
+
+- `NIDANA_MODEL_PRIMARY` — required. Every service refuses to boot without
+  it, naming the remedy. This is the guard the `spec_for` fix put in place.
+- `NIDANA_BRAND_INDEX` — path to `services/rx/rules/brands/index.csv`.
+  Unset, Rx boots and reports `brand_resolution_available: false` rather than
+  guessing molecules.
+- `NIDANA_ALLOW_UNVERIFIED_RULES` — defaults permissive so development
+  works. Set it `false` to see the production gate: Labs refuses on 10
+  thresholds, Consult on 30 rules, both naming every blocker.
+
+Verified on 2026-09-10 by booting all five services through their real
+lifespans, resolving four real Indian brands against the full index
+(sub-millisecond, correct molecules, a fabricated brand refused), and
+translating IPC 302/307/324/376 to BNS with the merged-provision reverse
+lookup returning both sources.
+
 **Ollama** is running with `qwen3:1.7b`, `llama3.2:3b`, `granite4.1:3b`,
 `qwen3:4b`, `nomic-embed-text`. qwen3 does extended thinking and times out on
 short budgets — use granite or llama for quick checks.
@@ -261,7 +295,7 @@ a file and read it, or `.encode("ascii", "replace")`.
 
 ## Next, in order
 
-1. **Let the panel finish** — 21 rules, ~2.5 hours, resumable.
+1. **Let the panel finish** — 16 rules, ~2.5 hours, resumable.
 2. **Decide on attestation.** `python scripts/attest_rule.py --all
    --accepted-by "<name>"` ships everything the panel reviewed, with disclosure
    on every response. Read the drift counts first.
