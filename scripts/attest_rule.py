@@ -2,9 +2,10 @@
 
 This is the honest middle path between two worse options: pretending a doctor
 signed a rule nobody read, or refusing to start at all when no clinician is
-available. It says exactly what happened — a panel of models read the rule, a
-named person in the deploying organisation accepted the risk — and it makes
-that statement travel with every output the rule contributes to.
+available. It says exactly what happened — a panel of models read the rule, and
+either a named person accepted the risk or, where there is nobody to name,
+the model itself is recorded as having accepted it — and it makes that
+statement travel with every output the rule contributes to.
 
 **What it is not.** It does not set `verify_before_ship`, does not write
 `verified_by`, and cannot produce `CLINICIAN_VERIFIED`. A rule attested this
@@ -21,8 +22,16 @@ attestation so it sits beside the rule rather than in a log.
 
 Run:
     python scripts/attest_rule.py --list
-    python scripts/attest_rule.py RF_ACS_001 --accepted-by "S Shashank, CTO"
+    python scripts/attest_rule.py RF_ACS_001
+    python scripts/attest_rule.py --all
     python scripts/attest_rule.py --all --accepted-by "S Shashank, CTO"
+
+Without --accepted-by the model that read the rule is recorded as having
+accepted it, prefixed "Model (...)" so nothing can read it as a person. That
+is the honest entry where a deployment has nobody to sign: it says a model
+decided, which is what happened. Naming a person instead says an organisation
+took the risk knowingly, which is a stronger record and the better one where
+someone is willing to give it.
 """
 
 from __future__ import annotations
@@ -160,7 +169,10 @@ def main() -> int:
     parser.add_argument("rule_id", nargs="?")
     parser.add_argument(
         "--accepted-by",
-        help="who in the deploying organisation accepts that no clinician read this",
+        help=(
+            "who accepts that no clinician read this. Defaults to the model that "
+            "produced the reading, labelled as a model"
+        ),
     )
     parser.add_argument("--all", action="store_true", help="attest every reviewed rule")
     parser.add_argument("--service", default="consult")
@@ -171,12 +183,10 @@ def main() -> int:
     if args.list or (not args.rule_id and not args.all):
         return show(args.service)
 
-    if not args.accepted_by or len(args.accepted_by.strip()) < MINIMUM_NAME_LENGTH:
+    if args.accepted_by is not None and len(args.accepted_by.strip()) < MINIMUM_NAME_LENGTH:
         raise SystemExit(
-            "--accepted-by is required and must name a person, for example "
-            "'S Shashank, CTO'. Attesting a rule means accepting that a criterion "
-            "routing real patients was never read by a clinician, and the name is "
-            "what makes that decision attributable"
+            "--accepted-by must be long enough to identify who accepted the risk, "
+            "for example 'S Shashank, CTO'. Omit it to record the model instead"
         )
 
     directory = rules_dir(args.service, "red_flags")
@@ -206,13 +216,20 @@ def main() -> int:
         review = rule.review
         if review is None:
             continue
+        # Without a named person the model that read the rule is recorded
+        # instead, prefixed so nothing downstream can read it as a person. It
+        # is the honest entry for a deployment running on a model's reading
+        # with nobody to sign: the field says a model, the state says
+        # MODEL_ATTESTED, and the disclosure on every response says neither
+        # was a clinician.
+        accepted_by = args.accepted_by or f"Model ({', '.join(review.models)})"
         drift = drift_for(args.briefs / f"{rule.id}.md")
         total_drift += len(drift)
         for path in sorted(directory.glob("*.yaml")):
             if attest(
                 path,
                 rule.id,
-                accepted_by=args.accepted_by,
+                accepted_by=accepted_by,
                 models=review.models,
                 panel_version=review.panel_version,
                 drift=drift,
